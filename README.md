@@ -14,7 +14,9 @@ This installs skills for AI coding agents like Claude Code, Cursor, Windsurf, Co
 
 | Skill | Description |
 |-------|-------------|
-| `docutray` | Complete guide for converting documents to structured data using docutray-cli |
+| `docutray-setup` | Install, configure, and authenticate docutray-cli and SDKs |
+| `docutray-platform` | Core platform usage: convert, identify, types, and steps commands |
+| `docutray-advanced` | Advanced features: document type creation, schema design, and processing pipelines |
 
 ## What is DocuTray?
 
