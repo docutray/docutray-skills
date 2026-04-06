@@ -1,0 +1,27 @@
+schema: spec-driven
+
+context: |
+  This is a skills repository for docutray-cli, following the Agent Skills
+  specification (https://agentskills.io) and the skills.sh ecosystem.
+
+  DocuTray is an AI-powered document processing platform. Its CLI (@docutray/cli)
+  converts documents (PDFs, images) into structured data using extraction schemas
+  called "document types."
+
+  CLI commands: login, logout, status, convert, identify, types (list/get/export),
+  steps (run/status). Output is JSON-first, designed for AI agents and pipelines.
+
+  Skills are SKILL.md files with YAML frontmatter + Markdown instructions.
+  Published via GitHub and installed with: npx skills add docutray/docutray-skills
+
+  Tech stack: Markdown, YAML frontmatter, shell scripts
+  Conventions: Follow Agent Skills spec, keep SKILL.md < 500 lines,
+  use references/ for detailed docs, progressive disclosure pattern.
+
+rules:
+  proposal:
+    - Focus on what the skill teaches agents about docutray-cli usage
+    - Consider multi-agent compatibility (Claude Code, Cursor, Codex, etc.)
+  tasks:
+    - Each task should produce a testable artifact (SKILL.md or reference file)
+    - Keep tasks focused on one skill or one reference document
