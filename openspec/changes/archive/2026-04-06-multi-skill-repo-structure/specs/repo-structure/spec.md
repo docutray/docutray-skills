@@ -3,9 +3,9 @@
 ### Requirement: Skills directory structure follows Agent Skills spec
 The repository SHALL have a `skills/` directory containing one subdirectory per skill, each with a `SKILL.md` file.
 
-#### Scenario: Three skill directories exist
+#### Scenario: Required skill directories exist
 - **WHEN** the `skills/` directory is listed
-- **THEN** it SHALL contain exactly `docutray-setup/`, `docutray-platform/`, and `docutray-advanced/` subdirectories
+- **THEN** it SHALL contain `docutray-setup/`, `docutray-platform/`, and `docutray-advanced/` subdirectories
 
 #### Scenario: Each directory contains SKILL.md
 - **WHEN** any skill subdirectory is listed
