@@ -4,8 +4,8 @@
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://app.docutray.com/api` |
-| Staging | `https://staging.docutray.com/api` |
+| Production | `https://app.docutray.com` |
+| Staging | `https://staging.docutray.com` |
 
 ## Authentication
 

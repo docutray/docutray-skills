@@ -153,7 +153,7 @@ curl -s -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
   https://app.docutray.com/api/types
 ```
 
-A `200` response with a JSON array confirms authentication is working.
+A `200` response with a JSON body (e.g., `{ "success": true, "data": [...] }`) confirms authentication is working.
 
 ### Staging Environment
 
