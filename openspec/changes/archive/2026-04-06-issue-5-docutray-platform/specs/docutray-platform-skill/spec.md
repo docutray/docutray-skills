@@ -1,8 +1,4 @@
-## Purpose
-
-Defines requirements for the docutray-platform skill — core CLI operations including convert, identify, types, and steps.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Platform skill skeleton exists
 The repository SHALL contain a `skills/docutray-platform/SKILL.md` file with valid YAML frontmatter including `name` and `description` fields, populated with complete instructional content for all four core CLI commands.
