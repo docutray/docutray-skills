@@ -1,8 +1,4 @@
-## Purpose
-
-Defines requirements for the docutray-setup skill skeleton — installation, configuration, and authentication guidance for docutray-cli and SDKs.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Setup skill skeleton exists
 The repository SHALL contain a `skills/docutray-setup/SKILL.md` file with valid YAML frontmatter including `name` and `description` fields. The file SHALL contain complete setup instructions (not skeleton TODOs).
