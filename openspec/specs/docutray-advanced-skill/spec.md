@@ -39,4 +39,4 @@ The `description` field SHALL include phrases related to advanced features to en
 
 #### Scenario: Trigger phrase coverage
 - **WHEN** the `description` field is read
-- **THEN** it MUST mention document type creation, schema design, and processing pipelines
+- **THEN** it MUST mention document type creation, schema design, and prompt hints or extraction rules

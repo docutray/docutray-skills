@@ -207,7 +207,7 @@ For structured sub-sections (e.g., address):
   "billing_address": {
     "type": ["object", "null"],
     "description": "Billing address block, usually left side of page",
-    "required": ["street", "city", "country"],
+    "required": ["street", "city", "state", "postal_code", "country"],
     "properties": {
       "street": {
         "type": ["string", "null"],

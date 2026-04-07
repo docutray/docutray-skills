@@ -2,9 +2,9 @@
 name: docutray-advanced
 description: >-
   Advanced DocuTray features: create custom document types, design extraction
-  schemas, and build processing pipelines. Use this skill when creating a new
+  schemas, and configure prompt hints. Use this skill when creating a new
   document type, defining schema fields, configuring extraction rules, or
-  setting up multi-step processing pipelines.
+  modifying existing document types.
 ---
 
 # DocuTray Advanced
@@ -191,6 +191,7 @@ Descriptions guide the extraction model. Include:
     "description": "Table of purchased items",
     "items": {
       "type": "object",
+      "required": ["description", "quantity", "unit_price", "total"],
       "properties": {
         "description": { "type": ["string", "null"] },
         "quantity": { "type": ["number", "null"] },
