@@ -161,6 +161,7 @@ done
 ### Python SDK — Async Batch
 
 ```python
+import json
 from docutray import AsyncClient
 import asyncio
 from pathlib import Path
@@ -172,7 +173,7 @@ async def batch_convert(directory: str, document_type: str):
         tasks.append(client.convert(file_path=str(pdf), document_type=document_type))
     results = await asyncio.gather(*tasks)
     for pdf, result in zip(Path(directory).glob("*.pdf"), results):
-        pdf.with_suffix(".json").write_text(result.json())
+        pdf.with_suffix(".json").write_text(json.dumps(result.data))
 
 asyncio.run(batch_convert("documents", "invoice"))
 ```

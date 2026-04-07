@@ -393,11 +393,12 @@ done
 **Python SDK:**
 
 ```python
+import json
 from pathlib import Path
 
 for pdf in Path("documents").glob("*.pdf"):
     result = client.convert(file_path=str(pdf), document_type="invoice")
-    pdf.with_suffix(".json").write_text(result.json())
+    pdf.with_suffix(".json").write_text(json.dumps(result.data))
 ```
 
 ### Inspect Available Types Before Converting
