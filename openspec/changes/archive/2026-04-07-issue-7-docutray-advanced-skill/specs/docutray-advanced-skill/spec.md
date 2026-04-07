@@ -1,8 +1,4 @@
-## Purpose
-
-Defines requirements for the docutray-advanced skill — document type creation, schema design, and processing pipelines.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Advanced skill skeleton exists
 The repository SHALL contain a `skills/docutray-advanced/SKILL.md` file with valid YAML frontmatter including `name` and `description` fields, populated with complete document type configuration workflow content.
