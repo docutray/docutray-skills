@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-Defines requirements for the repository directory structure and documentation following the Agent Skills specification.
-## Requirements
 ### Requirement: Skills directory structure follows Agent Skills spec
 The repository SHALL have a `skills/` directory containing exactly one subdirectory — `docutray/` — with a `SKILL.md` file and a `references/` subdirectory.
 
@@ -19,11 +17,3 @@ The `README.md` SHALL contain a table or section listing every distributable ski
 #### Scenario: Skill table is current
 - **WHEN** the `README.md` is read
 - **THEN** it SHALL contain an entry for the `docutray` skill and SHALL NOT contain entries for the legacy `docutray-setup`, `docutray-platform`, or `docutray-advanced` skills
-
-### Requirement: Skill names use valid format
-All skill names SHALL be lowercase, use hyphens as separators, and be between 1-64 characters.
-
-#### Scenario: Name format validation
-- **WHEN** each skill's `name` frontmatter field is checked
-- **THEN** it SHALL match the pattern `^[a-z][a-z0-9-]{0,63}$`
-

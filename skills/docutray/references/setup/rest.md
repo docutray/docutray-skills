@@ -1,4 +1,6 @@
-# REST API Setup — Detailed Reference
+# REST API setup — detailed reference
+
+DocuTray's REST API is what the CLI and SDKs talk to under the hood. The convert response shape below is verified against the live API; other endpoint responses (types list/get, identify, status) include a top-level `data` envelope but their internal shape may evolve — when in doubt, hit the endpoint and inspect.
 
 ## Base URL
 
@@ -36,30 +38,30 @@ GET /api/types
 
 ```json
 {
-  "success": true,
   "data": [
     {
-      "name": "invoice",
-      "description": "Standard invoice document"
+      "code": "electronic-invoice",
+      "name": "Electronic invoice",
+      "description": "Standard electronic invoice document"
     }
   ]
 }
 ```
 
-### Get Document Type
+### Get document type
 
 ```
-GET /api/types/{name}
+GET /api/types/{code}
 ```
 
 **Response:**
 
 ```json
 {
-  "success": true,
   "data": {
-    "name": "invoice",
-    "description": "Standard invoice document",
+    "code": "electronic-invoice",
+    "name": "Electronic invoice",
+    "description": "Standard electronic invoice document",
     "schema": { ... }
   }
 }
@@ -89,22 +91,23 @@ curl -X POST \
   https://app.docutray.com/api/convert
 ```
 
-**Response:**
+**Response** — top-level `data` whose keys come from the document type's schema. Example values are illustrative; key names depend on the active schema (DocuTray's default org schemas often use Spanish keys like `moneda`, `detalle`, `fecha_emision`):
 
 ```json
 {
-  "success": true,
   "data": {
-    "document_type": "invoice",
-    "fields": {
-      "invoice_number": "INV-2024-001",
-      "total": 1500.00
-    }
+    "invoice_id": "INV-2024-001",
+    "moneda": "USD",
+    "fecha_emision": "2024-03-15",
+    "monto_total": 1500.00,
+    "detalle": [
+      { "nombre": "Servicio", "cantidad": "1", "precio_total": 1500.00 }
+    ]
   }
 }
 ```
 
-### Identify Document
+### Identify document
 
 ```
 POST /api/identify
@@ -130,15 +133,17 @@ curl -X POST \
 
 ```json
 {
-  "success": true,
   "data": {
-    "document_type": "invoice",
-    "confidence": 0.95
+    "document_type": "electronic-invoice",
+    "confidence": 0.95,
+    "alternatives": [
+      { "document_type": "receipt", "confidence": 0.04 }
+    ]
   }
 }
 ```
 
-### Check Status
+### Check status
 
 ```
 GET /api/status
@@ -148,7 +153,6 @@ GET /api/status
 
 ```json
 {
-  "success": true,
   "data": {
     "authenticated": true,
     "plan": "pro",
@@ -157,24 +161,14 @@ GET /api/status
 }
 ```
 
-## Response Format
+## Response format
 
-All responses follow this structure:
+All successful responses include a top-level `data` field. For `convert`, `data` holds the schema-driven extraction directly (no `fields` envelope). Branch on HTTP status, not on a `success` boolean.
 
-**Success:**
-
-```json
-{
-  "success": true,
-  "data": { ... }
-}
-```
-
-**Error:**
+**Errors** use the same envelope with HTTP 4xx/5xx and an `error` object:
 
 ```json
 {
-  "success": false,
   "error": {
     "code": "INVALID_API_KEY",
     "message": "The provided API key is invalid"

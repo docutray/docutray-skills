@@ -8,11 +8,12 @@ Agent skills repository for [DocuTray CLI](https://docs.docutray.com/cli) — AI
 
 ## Repository Structure
 
-- `skills/` — Contains the three distributable skills, each with a `SKILL.md` (YAML frontmatter + Markdown) and optional `references/` directory for detailed docs
-  - `docutray-setup/` — Installation, authentication, troubleshooting
-  - `docutray-platform/` — Core CLI commands: convert, identify, types, steps
-  - `docutray-advanced/` — Custom document types, schemas, processing pipelines
-- `openspec/` — Change management via [OpenSpec](https://github.com/openspec-dev/openspec): `config.yaml`, `specs/`, `changes/`
+- `skills/docutray/` — The single distributable skill.
+  - `SKILL.md` — root skill file (YAML frontmatter + Markdown), CLI as canonical example, ≤ 500 lines.
+  - `references/setup/{cli,python,node,rest,troubleshooting}.md` — install/auth depth per integration path.
+  - `references/platform/{convert,identify,types,steps}.md` — depth for the four core operations.
+  - `references/advanced/{custom-types-workflow,schema-design}.md` — custom document types and JSON Schema design.
+- `openspec/` — Change management via [OpenSpec](https://github.com/openspec-dev/openspec): `config.yaml`, `specs/`, `changes/`.
 
 ## Key Conventions
 
