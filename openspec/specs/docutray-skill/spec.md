@@ -69,7 +69,7 @@ The root SKILL.md SHALL link to the matching `references/` file from each top-le
 - **THEN** each SHALL contain at least one cross-reference to its corresponding file under `references/`
 
 ### Requirement: Documented commands match the live CLI
-Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.2.1` or later.
+Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.3.0` or later.
 
 #### Scenario: Convert flags are real
 - **WHEN** the convert section in `SKILL.md` or `references/platform/convert.md` is read
@@ -89,7 +89,15 @@ Every `docutray` command, subcommand, flag, and argument shown in `skills/docutr
 
 #### Scenario: Login non-interactive forms documented
 - **WHEN** the setup section or `references/setup/cli.md` documents `docutray login`
-- **THEN** it SHALL warn that `docutray login` requires a TTY and SHALL document at least one non-interactive alternative (`docutray login --api-key <key>`, the positional `docutray login <key>`, or `DOCUTRAY_API_KEY` env var)
+- **THEN** it SHALL warn that the bare `docutray login` form requires a TTY and SHALL document at least one non-interactive alternative drawn from: `docutray login --oauth`, `docutray login --api-key <key>`, the positional `docutray login <key>`, or the `DOCUTRAY_API_KEY` env var
+
+#### Scenario: OAuth is the recommended agent path
+- **WHEN** the setup section in `SKILL.md` and the Authentication section in `references/setup/cli.md` document agent or non-interactive login
+- **THEN** they SHALL present `docutray login --oauth` first as the recommended path for AI coding agents, with a brief rationale that the API key never enters the agent's conversation context (the CLI prints the auth URL to stderr, opens the browser, waits for the callback, writes the key to `~/.config/docutray/config.json`, and returns a JSON success payload on stdout whose `apiKey` field is masked)
+
+#### Scenario: OAuth flags documented
+- **WHEN** `docutray login --oauth` is documented
+- **THEN** the documentation SHALL also document the related flags `--no-browser` (skip auto-opening the browser) and `--timeout=<seconds>` (default 180), and SHALL note the stdout/stderr split (success JSON on stdout, auth URL and progress on stderr)
 
 ### Requirement: Convert response shape is schema-driven
 Documentation of the `docutray convert` response SHALL describe the body as `{ "data": { ...keys defined by the active document-type schema... } }` and SHALL NOT include a fabricated `"success"` boolean wrapper or a `"document_type"` / `"fields"` envelope around the extracted data.

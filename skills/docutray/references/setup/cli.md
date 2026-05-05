@@ -16,29 +16,83 @@ npx @docutray/cli <command>
 
 ## Authentication
 
-### Option 1: `DOCUTRAY_API_KEY` env var (recommended)
+### Option 1 (recommended for agents): `docutray login --oauth`
+
+Available in `@docutray/cli >= 0.3.0`. Drives an OAuth browser flow without a TTY: the CLI prints the auth URL on stderr, opens the user's browser, blocks on the local callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key.
+
+```bash
+$ docutray login --help
+USAGE
+  $ docutray login [API-KEY] [--api-key <value>] [--base-url
+    <value>] [--json] [--no-browser] [--oauth] [--timeout <value>]
+
+FLAGS
+  --api-key=<value>   API key for non-interactive login
+  --base-url=<value>  Custom base URL for the DocuTray API (default:
+                      https://app.docutray.com)
+  --json              Output as JSON (default when piped)
+  --no-browser        Skip opening the browser; print the URL only (--oauth only)
+  --oauth             Login via OAuth in the browser (works without a TTY)
+  --timeout=<value>   [default: 180] OAuth callback timeout in seconds
+                      (--oauth only)
+```
+
+#### Observed behavior (verified end-to-end against `@docutray/cli/0.3.0`)
+
+```bash
+$ docutray login --oauth
+```
+
+- **stderr** (progress, in order):
+  ```
+  Open this URL to authorize: https://app.docutray.com/api/auth/oauth2/authorize?client_id=docutray-cli&response_type=code&redirect_uri=http://localhost:9876/callback&...
+  Opening browser for authentication...
+  Waiting for authentication (timeout: 180s)...
+  Exchanging authorization code...
+  Fetching organizations...
+  Multiple organizations found, using: <org-name>
+  Creating API key...
+  ```
+- **stdout** (success JSON, after the user authorizes):
+  ```json
+  {
+    "message": "Login successful",
+    "apiKey": "dtXJ****dWhx",
+    "organizationId": "JjfaVBa3fDuAvqTpBzFqlFuQcCgBDjyn",
+    "organizationName": "docutray.com",
+    "configPath": "/Users/<user>/.config/docutray/config.json"
+  }
+  ```
+- **exit 0** on success.
+
+Notes for agents:
+
+- The auth URL prefix `Open this URL to authorize:` is a stable marker — grep stderr for it if the agent needs to surface the URL to the user (e.g. when the browser auto-open fails).
+- `apiKey` in the success JSON is **masked** as `<first-4>****<last-4>`. The unmasked key is only on disk in `~/.config/docutray/config.json`.
+- The CLI binds the OAuth callback on `http://localhost:9876/callback` — keep that port free and not blocked by the local firewall.
+- When the authenticated user belongs to multiple DocuTray orgs, the CLI auto-selects the first one (visible in the `Multiple organizations found, using: …` stderr line). To pick a specific org, log into the dashboard with that org, create an API key there, and use `docutray login --api-key <key>` instead.
+
+#### Useful flags
+
+```bash
+docutray login --oauth --no-browser           # print URL only; don't auto-open
+docutray login --oauth --timeout 60           # custom callback timeout (default 180s)
+docutray login --oauth --base-url https://staging.docutray.com   # staging
+```
+
+### Option 2: `DOCUTRAY_API_KEY` env var
+
+For environments where `--oauth` won't work (CI runners, headless servers, no browser):
 
 ```bash
 export DOCUTRAY_API_KEY="dt_live_your_key_here"
 ```
 
-Works in any environment: local dev, agent shells, CI/CD, Docker. Always wins over the config file when both are set.
+Works in any shell. Always wins over the config file when both are set.
 
-### Option 2: `docutray login`
+### Option 3: pass an existing key to `docutray login`
 
-```bash
-$ docutray login --help
-USAGE
-  $ docutray login [API-KEY] [--api-key <value>] [--base-url <value>] [--json]
-```
-
-**Important:** the bare `docutray login` form requires a TTY. Inside an agent/CI it errors with:
-
-```
-Non-interactive mode requires --api-key flag or api-key argument
-```
-
-Use one of these forms instead:
+When the user already has a key (e.g. from the dashboard) and wants it written to the config file:
 
 ```bash
 # Non-interactive: flag form
@@ -46,15 +100,17 @@ docutray login --api-key dt_live_your_key_here
 
 # Non-interactive: positional form (equivalent)
 docutray login dt_live_your_key_here
+```
 
-# Or, ask the user to run interactive login in their own terminal
-# (in Claude Code: prefix with `! ` so the user runs it)
+### Bare `docutray login` (interactive only)
+
+```bash
 docutray login
 ```
 
-The interactive form prompts to choose between pasting an existing API key or doing OAuth2 in the browser; OAuth opens a tab, lets the user select an organization, and writes the resulting key to `~/.config/docutray/config.json` with restricted permissions.
+Requires a TTY. From an agent shell or CI it errors with `Non-interactive mode requires --api-key flag or api-key argument`. The interactive form prompts the user to choose between pasting a key and OAuth; the same OAuth ceremony as `--oauth` runs underneath. Useful when the user runs it themselves in their own terminal (`! docutray login` in Claude Code).
 
-For staging:
+For staging in interactive mode:
 
 ```bash
 docutray login --base-url https://staging.docutray.com
@@ -63,7 +119,7 @@ docutray login --base-url https://staging.docutray.com
 ### Priority order
 
 1. `DOCUTRAY_API_KEY` env var.
-2. `~/.config/docutray/config.json` (from `docutray login`).
+2. `~/.config/docutray/config.json` (from `docutray login` / `docutray login --oauth` / `docutray login --api-key`).
 
 ### Logout
 
@@ -77,17 +133,18 @@ Removes the stored credentials from `~/.config/docutray/config.json`. Has no eff
 
 ```bash
 $ docutray status
-authenticated:    true
-api_key:          dt_live_********abc1
-credential_source: env
-base_url:         https://app.docutray.com
-config_path:      /Users/<user>/.config/docutray/config.json
+{
+  "authenticated": true,
+  "apiKey": "dtXJ****dWhx",
+  "source": "config",
+  "baseUrl": "https://app.docutray.com",
+  "configPath": "/Users/<user>/.config/docutray/config.json",
+  "organizationId": "JjfaVBa3fDuAvqTpBzFqlFuQcCgBDjyn",
+  "organizationName": "docutray.com"
+}
 ```
 
-```bash
-# JSON form (default when piped)
-docutray status --json
-```
+`--json` is the default when stdout is piped (it's also the default when run from an agent shell). The `apiKey` field is **masked**; the unmasked value lives on disk only. `source` is `env` when the key came from `DOCUTRAY_API_KEY`, `config` when it came from the config file. `organizationId` / `organizationName` are populated for OAuth-authenticated sessions.
 
 A user who logged in from another terminal can be verified the same way.
 

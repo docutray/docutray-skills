@@ -4,10 +4,12 @@ description: >-
   Use docutray-cli (or the Python/Node SDKs / REST API) to convert documents to
   structured data, identify document types, manage extraction schemas (types),
   run processing steps, and create custom document types. Covers install,
-  authentication (DOCUTRAY_API_KEY, docutray login, OAuth, --base-url for
-  staging), and troubleshooting. Use this skill whenever a task involves
-  docutray, document conversion, document-type identification, or extraction
-  schemas.
+  authentication (recommended for agents: `docutray login --oauth`, which
+  drives an OAuth browser flow without exposing the API key to the
+  conversation; alternatives: DOCUTRAY_API_KEY env var, --api-key flag,
+  --base-url for staging), and troubleshooting. Use this skill whenever a
+  task involves docutray, document conversion, document-type identification,
+  or extraction schemas.
 ---
 
 # DocuTray
@@ -43,33 +45,41 @@ Never hardcode keys. Use `DOCUTRAY_API_KEY`.
 
 ### 1.3 Authenticate (CLI)
 
-The recommended path is the env var — it works in any shell, including agent shells, and overrides any stored config:
+**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.0`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
+
+```bash
+docutray login --oauth
+# stderr → "Open this URL to authorize: https://app.docutray.com/api/auth/oauth2/authorize?..."
+# stderr → "Opening browser for authentication..."
+# (user authorizes in their browser; if Claude Code can't reach the user's browser
+#  directly, surface the URL so the user can open it themselves)
+# stdout ← {"message":"Login successful","apiKey":"dtXJ****dWhx",
+#            "organizationId":"...","organizationName":"...",
+#            "configPath":"/Users/.../config.json"}
+```
+
+Useful related flags:
+
+```bash
+docutray login --oauth --no-browser           # print URL only; don't auto-open
+docutray login --oauth --timeout 60           # default 180s
+docutray login --oauth --base-url https://staging.docutray.com
+```
+
+**When OAuth isn't possible** (CI, headless server, no browser) — fall back to the env var:
 
 ```bash
 export DOCUTRAY_API_KEY="dt_live_your_key_here"
 ```
 
-`docutray login` is the alternative. **Important:** `docutray login` requires a TTY. Inside an agent shell or CI it errors with `Non-interactive mode requires --api-key flag or api-key argument`. Use one of the non-interactive forms:
+This works in any shell and overrides the config file. Other non-interactive forms when the user already has a key in hand:
 
 ```bash
-# Non-interactive: flag form
-docutray login --api-key dt_live_your_key_here
-
-# Non-interactive: positional form
-docutray login dt_live_your_key_here
-
-# Or: have the user run interactive login in their own terminal
-# (with `! docutray login` in Claude Code)
-docutray login
+docutray login --api-key dt_live_your_key_here   # flag form
+docutray login dt_live_your_key_here             # positional form
 ```
 
-For staging:
-
-```bash
-docutray login --base-url https://staging.docutray.com
-# or
-docutray --base-url https://staging.docutray.com status
-```
+**Bare `docutray login` is interactive** — it requires a TTY and errors with `Non-interactive mode requires --api-key flag or api-key argument` inside an agent shell. Only useful when the user runs it themselves (e.g. `! docutray login` in Claude Code).
 
 Credentials live at `~/.config/docutray/config.json`. The env var takes precedence when both are set.
 
@@ -276,7 +286,9 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Non-interactive mode requires --api-key flag or api-key argument` | `docutray login` invoked without a TTY (agent / CI) | Use `docutray login --api-key dt_live_...`, the positional form, or set `DOCUTRAY_API_KEY` |
+| `Non-interactive mode requires --api-key flag or api-key argument` | Bare `docutray login` invoked without a TTY (agent / CI) | Use `docutray login --oauth` (preferred), `docutray login --api-key dt_live_...`, the positional form, or set `DOCUTRAY_API_KEY` |
+| OAuth login hangs / never returns | User hasn't authorized in browser yet, or callback can't reach `localhost:9876` | Wait up to 180s (default `--timeout`); pass `--timeout <seconds>` to shorten; verify port 9876 is free; use `--no-browser` and surface the URL to the user manually |
+| OAuth picked the wrong organization | User has multiple DocuTray orgs; CLI auto-selects the first (`Multiple organizations found, using: …` on stderr) | Log into the dashboard with the desired org, create an API key there, and use `docutray login --api-key <key>` instead |
 | `Error: Nonexistent flag: --output` (or `--format`) on `convert` | Flag does not exist | Use shell redirection `> result.json` |
 | `401 Unauthorized` | Missing or invalid key | Verify with `docutray status`; re-export `DOCUTRAY_API_KEY` |
 | `403 Forbidden` | Key lacks permissions | Issue a new key in the dashboard |

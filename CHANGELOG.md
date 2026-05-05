@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Recommend `docutray login --oauth` as the canonical agent auth path.** Requires `@docutray/cli >= 0.3.0`. The CLI prints the OAuth authorization URL to stderr, opens the user's browser, blocks on the local callback (default `http://localhost:9876/callback`), and writes the resulting API key to `~/.config/docutray/config.json`. The agent only ever sees the masked form (`<first-4>****<last-4>`) of the key in the success JSON on stdout. SKILL.md §1.3 now leads with `--oauth`; `DOCUTRAY_API_KEY`, `--api-key`, and the positional form remain as fallbacks for browserless environments. References and troubleshooting tables document `--no-browser`, `--timeout`, the multi-org auto-select behavior, and the port-9876 callback. Verified end-to-end against the locally-built `@docutray/cli/0.3.0`.
+
 ### Changed — **BREAKING**
 
 - **Consolidated three skills into one.** `docutray-setup`, `docutray-platform`, and `docutray-advanced` are merged into a single `docutray` skill. Downstream consumers running `npx skills add docutray/docutray-skills` will see one skill instead of three after re-publishing.
