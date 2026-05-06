@@ -148,25 +148,42 @@ docutray convert invoice.pdf -t electronic-invoice \
 
 ## 3. Identify
 
-Detect the best-matching document type for a file or URL. Returns the top match with a confidence score plus alternative candidates.
+Detect the best-matching document type for a file or URL among a candidate set you provide. Returns the top match plus alternatives ranked by confidence.
+
+**`--types` is required in practice.** Calling `docutray identify <file>` without it returns `{"error":"Validation error","status":400}` (the CLI `--help` lists `--types` as optional, but the API rejects requests without it). Pass a non-empty comma-separated list of document type codes — narrow it to the plausible candidates for your document.
 
 ```bash
-# Local file
-docutray identify document.pdf
-
-# URL
-docutray identify https://example.com/doc.pdf
-
-# Restrict to a candidate set
+# Always pass --types with candidate codes
 docutray identify document.pdf --types invoice,receipt,contract
 
+# URL source (also requires --types)
+docutray identify https://example.com/doc.pdf --types invoice,factura_internacional
+
 # Async with status polling
-docutray identify document.pdf --async
+docutray identify document.pdf --types invoice,receipt --async
 ```
 
-**Flags**: `--async`, `--json`, `--types <comma-separated codes>`. There is no `--output` flag.
+**Flags**: `--async`, `--json`, `--types <comma-separated codes>`. There is no `--output` flag, no `-t/--type` (singular).
 
-**Confidence interpretation:**
+**Picking candidate codes.** Use file-name / context hints first; if you need to look up codes, run `docutray types list --json | jq -r '.data[].codeType'` and choose plausible ones. Don't pass every available code — some types in the list may not be usable by your org and will return `403 You do not have permission to use the following document types: …`.
+
+**Response shape** (no `data` wrapper; `document_type` is an object):
+
+```json
+{
+  "document_type": {
+    "code": "invoice",
+    "name": "Invoice",
+    "confidence": 0.99
+  },
+  "alternatives": [
+    { "code": "factura_internacional", "name": "Factura Internacional", "confidence": 0.2 },
+    { "code": "otro", "name": "Otro/No identificado", "confidence": 0.01 }
+  ]
+}
+```
+
+**Confidence interpretation** (read `.document_type.confidence`):
 
 - `>= 0.9` — high; safe to feed straight into `convert`.
 - `0.7 – 0.9` — moderate; review or ask the user.
@@ -262,7 +279,9 @@ docutray types create \
 ### Identify, then convert
 
 ```bash
-TYPE=$(docutray identify document.pdf --json | jq -r '.data.document_type')
+# Pick plausible candidate types from context/filename, then identify
+TYPE=$(docutray identify document.pdf --types invoice,receipt,factura_internacional --json \
+  | jq -r '.document_type.code')
 docutray convert document.pdf -t "$TYPE"
 ```
 
@@ -297,7 +316,9 @@ docutray convert invoice.pdf -t electronic-invoice
 | `413 File Too Large` | > 100MB | Split or compress |
 | `429 Rate Limited` | Throttled | Honor `Retry-After` |
 | `PROCESSING` stuck on a step | Pipeline failure | `docutray steps status <id>` for details |
-| Low identify confidence | No matching type | Restrict with `--types`, or design a custom type (Section 6) |
+| `{"error":"Validation error","status":400}` from `docutray identify` | Bare `docutray identify <file>` requires `--types`. The CLI `--help` shows it as optional but the API rejects requests without it | Pass `--types <comma-separated codes>` with plausible candidates (e.g. `--types invoice,receipt`) |
+| `403 You do not have permission to use the following document types: …` from `identify` | Some codes returned by `types list` aren't usable by your org | Drop the offending codes from the `--types` list; try a smaller candidate set |
+| Low identify confidence | No matching type among the candidates passed | Widen the `--types` list, or design a custom type (Section 6) |
 | `command types:view not found` / `types:delete not found` | Subcommand doesn't exist | Use `types get` / there is no delete subcommand |
 
 > **Depth:** `references/setup/troubleshooting.md` (env var/config conflicts, proxy/TLS, version checks) and `references/setup/rest.md` (full error code table).
