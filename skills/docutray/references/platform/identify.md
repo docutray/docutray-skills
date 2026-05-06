@@ -2,7 +2,7 @@
 
 Identify the type of a document by analyzing its content, against a candidate set you provide. Returns the best-matching document type plus alternatives ranked by confidence.
 
-Verified against `@docutray/cli/0.3.0` and a real PDF. Run `docutray identify --help` to confirm flag spellings.
+Verified against `@docutray/cli/0.3.1` and a real PDF. Run `docutray identify --help` to confirm flag spellings.
 
 ## Critical: `--types` is required in practice
 

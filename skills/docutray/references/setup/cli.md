@@ -18,7 +18,7 @@ npx @docutray/cli <command>
 
 ### Option 1 (recommended for agents): `docutray login --oauth`
 
-Available in `@docutray/cli >= 0.3.0`. Drives an OAuth browser flow without a TTY: the CLI prints the auth URL on stderr, opens the user's browser, blocks on the local callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key.
+Available in `@docutray/cli >= 0.3.1`. Drives an OAuth browser flow without a TTY: the CLI prints the auth URL on stderr, opens the user's browser, blocks on the local callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key.
 
 ```bash
 $ docutray login --help
@@ -37,7 +37,7 @@ FLAGS
                       (--oauth only)
 ```
 
-#### Observed behavior (verified end-to-end against `@docutray/cli/0.3.0`)
+#### Observed behavior (verified end-to-end against `@docutray/cli/0.3.1`)
 
 ```bash
 $ docutray login --oauth

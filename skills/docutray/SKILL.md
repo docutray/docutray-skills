@@ -45,7 +45,7 @@ Never hardcode keys. Use `DOCUTRAY_API_KEY`.
 
 ### 1.3 Authenticate (CLI)
 
-**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.0`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
+**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.1`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
 
 ```bash
 docutray login --oauth
@@ -201,20 +201,24 @@ docutray types list
 docutray types list --search invoice
 docutray types list --limit 50 --page 2
 
-# Get details for a single type
-docutray types get electronic-invoice
+# Get metadata for a single type
+docutray types get factura
 
-# Export a type definition as JSON
-docutray types export electronic-invoice                 # to stdout
-docutray types export electronic-invoice -o invoice.json # to file
-docutray types export electronic-invoice --force -o invoice.json
+# Export a type definition (currently same metadata as get)
+docutray types export factura                 # to stdout
+docutray types export factura -o factura.json # to file
+docutray types export factura --force -o factura.json
 ```
 
 **Subcommands**: `list`, `get`, `export`, `create`, `update`. (No `view` or `delete` subcommand exists — use `get` for inspection; type lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.)
 
-`types export` is the only command in this section that supports `-o, --output` (and `--force` for overwrite). `convert` does not.
+**`list` response** — `{"data":[…], "pagination":{"total","page","limit"}}`. Each item has `id`, `codeType`, `name`, `description`, `isPublic`, `isDraft`, `status`, `createdAt`, `updatedAt`. The identifier field is **`codeType`** (not `code`); pipe with `jq -r '.data[].codeType'` to extract codes for `--types` on `identify`.
 
-> **Depth:** `references/platform/types.md` — schema structure, field types, SDK/REST equivalents.
+**`get` / `export` response** — `{"data":{…}}` with the same item shape as `list`. **The JSON Schema itself is currently NOT returned by either command**; only metadata. To inspect or back up a schema today, view it via the dashboard. Watch the CLI release notes — the CLI's `--help` claims `export` returns "the document type definition", so this gap is likely a bug to be fixed upstream.
+
+`types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
+
+> **Depth:** `references/platform/types.md` — full response shapes, SDK/REST equivalents.
 
 ## 5. Steps
 
