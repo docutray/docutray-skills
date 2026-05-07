@@ -2,7 +2,7 @@
 
 Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
 
-Verified against `@docutray/cli/0.3.1` and a real org listing. Run `docutray types <subcommand> --help` to confirm.
+Verified against `@docutray/cli/0.3.2` and a real org listing. Run `docutray types <subcommand> --help` to confirm.
 
 ## Subcommands
 
@@ -16,9 +16,9 @@ Verified against `@docutray/cli/0.3.1` and a real org listing. Run `docutray typ
 
 There is **no** `view` subcommand (use `get`) and **no** `delete` subcommand. Lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.
 
-## Response shape (shared by `list`, `get`, `export`)
+## Response shape
 
-Each document type is represented by these top-level fields:
+Common type fields (returned by all three commands):
 
 | Field | Type | Notes |
 |---|---|---|
@@ -32,9 +32,20 @@ Each document type is represented by these top-level fields:
 | `createdAt` | string (ISO 8601) | UTC timestamp |
 | `updatedAt` | string (ISO 8601) | UTC timestamp |
 
-### Schema not currently exposed
+`get` and `export` additionally return the full type definition:
 
-Neither `types get` nor `types export` returns the actual JSON Schema today (verified against `@docutray/cli/0.3.1`, both for public and private types). The CLI's `--help` for `types export` says it exports "the document type definition" — that's currently misleading: only metadata is returned. To inspect or back up a schema today, view it via the dashboard. Watch upcoming releases.
+| Field | Type | Notes |
+|---|---|---|
+| `jsonSchema` | object | The JSON Schema used for extraction (object with `type`, `required`, `properties`) |
+| `promptHints` | string | Free-form hints applied during conversion |
+| `identifyPromptHints` | string | Free-form hints applied during identification |
+| `conversionMode` | string | `"json"` \| `"toon"` \| `"multi_prompt"` |
+| `keepPropertyOrdering` | boolean | When `true`, preserves the field order from the schema |
+
+### Envelope
+
+- `list` is wrapped — `{"data":[...], "pagination":{...}}`.
+- `get` and `export` are **flat** — fields are at the top level (no `data` envelope). Use `jq .jsonSchema` (not `jq .data.jsonSchema`).
 
 ## List
 
@@ -119,26 +130,49 @@ ARGUMENTS
 
 ```bash
 docutray types get factura
-docutray types get factura --json | jq '.data | {codeType, name, status}'
+docutray types get factura --json | jq '{codeType, name, status}'
+docutray types get factura --json | jq .jsonSchema   # extract just the schema
 ```
 
-### Get response
+### Get response (`@docutray/cli/0.3.2+`)
+
+Flat object — no `data` envelope. Includes the full type definition:
 
 ```json
 {
-  "data": {
-    "id": "cmc3lrbzk0007wu01dzjw2zzz",
-    "codeType": "factura",
-    "name": "Factura Electrónica",
-    "description": "Factura Electrónica del SII (Chile), con datos de emisor, receptor y detalle de productos/servicios.",
-    "isPublic": true,
-    "isDraft": false,
-    "status": "PUBLISHED",
-    "createdAt": "2025-06-19T16:35:43.856Z",
-    "updatedAt": "2025-08-19T13:50:37.744Z"
-  }
+  "id": "cmc3lrbzk0007wu01dzjw2zzz",
+  "codeType": "factura",
+  "name": "Factura Electrónica",
+  "description": "Factura Electrónica del SII (Chile), con datos de emisor, receptor y detalle de productos/servicios.",
+  "isPublic": true,
+  "isDraft": false,
+  "status": "PUBLISHED",
+  "jsonSchema": {
+    "type": "object",
+    "required": ["fecha_emision", "folio", "rut_emisor", "..."],
+    "properties": {
+      "folio": { "type": "number" },
+      "fecha_emision": { "type": "string", "format": "date-time" },
+      "detalle": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["descripcion", "cantidad", "precio_total"],
+          "properties": { "descripcion": { "type": "string" }, "cantidad": { "type": "number" }, "precio_total": { "type": "number" } }
+        }
+      }
+    }
+  },
+  "promptHints": "En estos documentos se ocupa el punto (\".\") como separador de miles…",
+  "identifyPromptHints": "",
+  "conversionMode": "json",
+  "keepPropertyOrdering": false,
+  "createdAt": "2025-06-19T16:35:43.856Z",
+  "updatedAt": "2025-08-19T13:50:37.744Z"
 }
 ```
+
+> **Earlier versions (`@docutray/cli/0.3.1` and below)**: only metadata was returned — `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` were absent. Upgrade to 0.3.2+ to inspect the schema via the CLI.
 
 ## Export
 
@@ -171,25 +205,7 @@ docutray types export factura -o factura-type.json --force
 
 ### Export response
 
-Currently identical to `types get`:
-
-```json
-{
-  "data": {
-    "id": "cmc3lrbzk0007wu01dzjw2zzz",
-    "codeType": "factura",
-    "name": "Factura Electrónica",
-    "description": "...",
-    "isPublic": true,
-    "isDraft": false,
-    "status": "PUBLISHED",
-    "createdAt": "2025-06-19T16:35:43.856Z",
-    "updatedAt": "2025-08-19T13:50:37.744Z"
-  }
-}
-```
-
-The actual JSON Schema is not in the response (see "Schema not currently exposed" above).
+Identical to `types get` — flat object including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering`. The on-disk file written with `-o` contains the same JSON.
 
 ## SDK equivalents
 
@@ -276,9 +292,7 @@ else
 fi
 ```
 
-### Pin a stable list of org types in version control
-
-Today (until `types export` returns the schema), you can only snapshot the metadata:
+### Pin org types in version control
 
 ```bash
 mkdir -p schemas
@@ -287,4 +301,4 @@ for CODE in $(docutray types list --limit 50 --json | jq -r '.data[].codeType');
 done
 ```
 
-Each file will contain only the metadata block (`id`, `codeType`, `name`, `description`, …) — useful for tracking which types exist and their status, not for full reconstruction.
+Each file contains the full type definition (metadata + `jsonSchema` + hints + conversion mode), so the snapshot is sufficient to recreate the type via `docutray types create`.

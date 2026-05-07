@@ -45,7 +45,7 @@ Never hardcode keys. Use `DOCUTRAY_API_KEY`.
 
 ### 1.3 Authenticate (CLI)
 
-**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.1`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
+**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.2`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
 
 ```bash
 docutray login --oauth
@@ -201,10 +201,11 @@ docutray types list
 docutray types list --search invoice
 docutray types list --limit 50 --page 2
 
-# Get metadata for a single type
+# Get full details (metadata + JSON Schema) for a single type
 docutray types get factura
+docutray types get factura --json | jq .jsonSchema   # extract just the schema
 
-# Export a type definition (currently same metadata as get)
+# Export a type definition (full shape including jsonSchema)
 docutray types export factura                 # to stdout
 docutray types export factura -o factura.json # to file
 docutray types export factura --force -o factura.json
@@ -214,7 +215,7 @@ docutray types export factura --force -o factura.json
 
 **`list` response** — `{"data":[…], "pagination":{"total","page","limit"}}`. Each item has `id`, `codeType`, `name`, `description`, `isPublic`, `isDraft`, `status`, `createdAt`, `updatedAt`. The identifier field is **`codeType`** (not `code`); pipe with `jq -r '.data[].codeType'` to extract codes for `--types` on `identify`.
 
-**`get` / `export` response** — `{"data":{…}}` with the same item shape as `list`. **The JSON Schema itself is currently NOT returned by either command**; only metadata. To inspect or back up a schema today, view it via the dashboard. Watch the CLI release notes — the CLI's `--help` claims `export` returns "the document type definition", so this gap is likely a bug to be fixed upstream.
+**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), and `keepPropertyOrdering`. Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
 
 `types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
 
@@ -331,7 +332,7 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Detail | Value |
 |---|---|
-| CLI package | `@docutray/cli` (verified against 0.2.1) |
+| CLI package | `@docutray/cli` (verified against 0.3.2) |
 | API key prefix | `dt_live_` |
 | Production base URL | `https://app.docutray.com` |
 | Staging base URL | `https://staging.docutray.com` |

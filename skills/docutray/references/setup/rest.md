@@ -85,7 +85,7 @@ GET /api/document-types/{codeType}
 }
 ```
 
-The actual JSON Schema is **not** included in the response in `@docutray/cli/0.3.1`. Inspect schemas via the dashboard until that gap is closed.
+In `@docutray/cli/0.3.2+`, `docutray types get` and `docutray types export` return the full type definition — including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` — as a flat object (no `data` envelope). Use the CLI for parity. The exact REST per-type endpoint shape is not re-verified here; treat the CLI as authoritative.
 
 ### Convert Document
 

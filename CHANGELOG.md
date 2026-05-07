@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Bumped CLI floor to `@docutray/cli >= 0.3.2`** (was 0.3.1 in the previous unreleased entry). 0.3.2 closes the schema-exposure gap on `docutray types get` and `docutray types export`: both commands now return the full type definition — `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` — as a flat object (no `data` envelope). SKILL.md §4 and `references/platform/types.md` updated: removed the "Schema not currently exposed" caveat, added the new fields to the response table, switched examples from `jq .data.…` to `jq .jsonSchema`, and updated the "pin in version control" pattern to note that the snapshot is now sufficient for reconstruction. CLI version references (frontmatter, technical reference table, spec) bumped 0.3.1 → 0.3.2.
+
 ### Fixed
 
 - **Bumped CLI floor to `@docutray/cli >= 0.3.1`** (was 0.3.0 in the previous unreleased entry). 0.3.1 fixes a bug where `docutray types list --json` exposed the user's API key in plain text under `pageOptions.client.apiKey`. The current docs assume 0.3.1+ where that block is absent. If you're still on 0.3.0, do not pipe `types list --json` to logs or shared destinations — upgrade first.

@@ -69,7 +69,7 @@ The root SKILL.md SHALL link to the matching `references/` file from each top-le
 - **THEN** each SHALL contain at least one cross-reference to its corresponding file under `references/`
 
 ### Requirement: Documented commands match the live CLI
-Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.3.1` or later.
+Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.3.2` or later.
 
 #### Scenario: Convert flags are real
 - **WHEN** the convert section in `SKILL.md` or `references/platform/convert.md` is read
