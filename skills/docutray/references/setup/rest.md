@@ -31,7 +31,7 @@ A `200` response with JSON data confirms authentication.
 ### List Document Types
 
 ```
-GET /api/types
+GET /api/document-types?limit=20&page=1
 ```
 
 **Response:**
@@ -40,18 +40,31 @@ GET /api/types
 {
   "data": [
     {
-      "code": "electronic-invoice",
-      "name": "Electronic invoice",
-      "description": "Standard electronic invoice document"
+      "id": "cmditbp6h000zrq01jl0whzcr",
+      "codeType": "balance_ocho_columnas",
+      "name": "Balance 8 Columnas",
+      "description": "Balance de 8 columnas, con identificación de empresa, periodo y cuentas con sus valores",
+      "isPublic": true,
+      "isDraft": false,
+      "status": "PUBLISHED",
+      "createdAt": "2025-07-25T12:43:46.360Z",
+      "updatedAt": "2025-07-31T18:05:07.931Z"
     }
-  ]
+  ],
+  "pagination": {
+    "total": 27,
+    "page": 1,
+    "limit": 20
+  }
 }
 ```
+
+The identifier field is `codeType` (not `code`). Use it as `--types <codeType>` on `identify` and `-t <codeType>` on `convert`.
 
 ### Get document type
 
 ```
-GET /api/types/{code}
+GET /api/document-types/{codeType}
 ```
 
 **Response:**
@@ -59,13 +72,20 @@ GET /api/types/{code}
 ```json
 {
   "data": {
-    "code": "electronic-invoice",
-    "name": "Electronic invoice",
-    "description": "Standard electronic invoice document",
-    "schema": { ... }
+    "id": "cmc3lrbzk0007wu01dzjw2zzz",
+    "codeType": "factura",
+    "name": "Factura Electrónica",
+    "description": "Factura Electrónica del SII (Chile)…",
+    "isPublic": true,
+    "isDraft": false,
+    "status": "PUBLISHED",
+    "createdAt": "2025-06-19T16:35:43.856Z",
+    "updatedAt": "2025-08-19T13:50:37.744Z"
   }
 }
 ```
+
+In `@docutray/cli/0.3.2+`, `docutray types get` and `docutray types export` return the full type definition — including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` — as a flat object (no `data` envelope). Use the CLI for parity. The exact REST per-type endpoint shape is not re-verified here; treat the CLI as authoritative.
 
 ### Convert Document
 

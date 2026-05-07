@@ -4,10 +4,12 @@ description: >-
   Use docutray-cli (or the Python/Node SDKs / REST API) to convert documents to
   structured data, identify document types, manage extraction schemas (types),
   run processing steps, and create custom document types. Covers install,
-  authentication (DOCUTRAY_API_KEY, docutray login, OAuth, --base-url for
-  staging), and troubleshooting. Use this skill whenever a task involves
-  docutray, document conversion, document-type identification, or extraction
-  schemas.
+  authentication (recommended for agents: `docutray login --oauth`, which
+  drives an OAuth browser flow without exposing the API key to the
+  conversation; alternatives: DOCUTRAY_API_KEY env var, --api-key flag,
+  --base-url for staging), and troubleshooting. Use this skill whenever a
+  task involves docutray, document conversion, document-type identification,
+  or extraction schemas.
 ---
 
 # DocuTray
@@ -43,33 +45,41 @@ Never hardcode keys. Use `DOCUTRAY_API_KEY`.
 
 ### 1.3 Authenticate (CLI)
 
-The recommended path is the env var — it works in any shell, including agent shells, and overrides any stored config:
+**Recommended for agents** — `docutray login --oauth` (requires `@docutray/cli >= 0.3.2`). The CLI prints the authorization URL to **stderr**, opens the user's browser, waits for the callback, and writes the resulting API key to `~/.config/docutray/config.json`. The agent never sees the unmasked key — the success JSON only includes a masked form (`<first-4>****<last-4>`).
+
+```bash
+docutray login --oauth
+# stderr → "Open this URL to authorize: https://app.docutray.com/api/auth/oauth2/authorize?..."
+# stderr → "Opening browser for authentication..."
+# (user authorizes in their browser; if Claude Code can't reach the user's browser
+#  directly, surface the URL so the user can open it themselves)
+# stdout ← {"message":"Login successful","apiKey":"dtXJ****dWhx",
+#            "organizationId":"...","organizationName":"...",
+#            "configPath":"/Users/.../config.json"}
+```
+
+Useful related flags:
+
+```bash
+docutray login --oauth --no-browser           # print URL only; don't auto-open
+docutray login --oauth --timeout 60           # default 180s
+docutray login --oauth --base-url https://staging.docutray.com
+```
+
+**When OAuth isn't possible** (CI, headless server, no browser) — fall back to the env var:
 
 ```bash
 export DOCUTRAY_API_KEY="dt_live_your_key_here"
 ```
 
-`docutray login` is the alternative. **Important:** `docutray login` requires a TTY. Inside an agent shell or CI it errors with `Non-interactive mode requires --api-key flag or api-key argument`. Use one of the non-interactive forms:
+This works in any shell and overrides the config file. Other non-interactive forms when the user already has a key in hand:
 
 ```bash
-# Non-interactive: flag form
-docutray login --api-key dt_live_your_key_here
-
-# Non-interactive: positional form
-docutray login dt_live_your_key_here
-
-# Or: have the user run interactive login in their own terminal
-# (with `! docutray login` in Claude Code)
-docutray login
+docutray login --api-key dt_live_your_key_here   # flag form
+docutray login dt_live_your_key_here             # positional form
 ```
 
-For staging:
-
-```bash
-docutray login --base-url https://staging.docutray.com
-# or
-docutray --base-url https://staging.docutray.com status
-```
+**Bare `docutray login` is interactive** — it requires a TTY and errors with `Non-interactive mode requires --api-key flag or api-key argument` inside an agent shell. Only useful when the user runs it themselves (e.g. `! docutray login` in Claude Code).
 
 Credentials live at `~/.config/docutray/config.json`. The env var takes precedence when both are set.
 
@@ -138,25 +148,42 @@ docutray convert invoice.pdf -t electronic-invoice \
 
 ## 3. Identify
 
-Detect the best-matching document type for a file or URL. Returns the top match with a confidence score plus alternative candidates.
+Detect the best-matching document type for a file or URL among a candidate set you provide. Returns the top match plus alternatives ranked by confidence.
+
+**`--types` is required in practice.** Calling `docutray identify <file>` without it returns `{"error":"Validation error","status":400}` (the CLI `--help` lists `--types` as optional, but the API rejects requests without it). Pass a non-empty comma-separated list of document type codes — narrow it to the plausible candidates for your document.
 
 ```bash
-# Local file
-docutray identify document.pdf
-
-# URL
-docutray identify https://example.com/doc.pdf
-
-# Restrict to a candidate set
+# Always pass --types with candidate codes
 docutray identify document.pdf --types invoice,receipt,contract
 
+# URL source (also requires --types)
+docutray identify https://example.com/doc.pdf --types invoice,factura_internacional
+
 # Async with status polling
-docutray identify document.pdf --async
+docutray identify document.pdf --types invoice,receipt --async
 ```
 
-**Flags**: `--async`, `--json`, `--types <comma-separated codes>`. There is no `--output` flag.
+**Flags**: `--async`, `--json`, `--types <comma-separated codes>`. There is no `--output` flag, no `-t/--type` (singular).
 
-**Confidence interpretation:**
+**Picking candidate codes.** Use file-name / context hints first; if you need to look up codes, run `docutray types list --json | jq -r '.data[].codeType'` and choose plausible ones. Don't pass every available code — some types in the list may not be usable by your org and will return `403 You do not have permission to use the following document types: …`.
+
+**Response shape** (no `data` wrapper; `document_type` is an object):
+
+```json
+{
+  "document_type": {
+    "code": "invoice",
+    "name": "Invoice",
+    "confidence": 0.99
+  },
+  "alternatives": [
+    { "code": "factura_internacional", "name": "Factura Internacional", "confidence": 0.2 },
+    { "code": "otro", "name": "Otro/No identificado", "confidence": 0.01 }
+  ]
+}
+```
+
+**Confidence interpretation** (read `.document_type.confidence`):
 
 - `>= 0.9` — high; safe to feed straight into `convert`.
 - `0.7 – 0.9` — moderate; review or ask the user.
@@ -174,20 +201,25 @@ docutray types list
 docutray types list --search invoice
 docutray types list --limit 50 --page 2
 
-# Get details for a single type
-docutray types get electronic-invoice
+# Get full details (metadata + JSON Schema) for a single type
+docutray types get factura
+docutray types get factura --json | jq .jsonSchema   # extract just the schema
 
-# Export a type definition as JSON
-docutray types export electronic-invoice                 # to stdout
-docutray types export electronic-invoice -o invoice.json # to file
-docutray types export electronic-invoice --force -o invoice.json
+# Export a type definition (full shape including jsonSchema)
+docutray types export factura                 # to stdout
+docutray types export factura -o factura.json # to file
+docutray types export factura --force -o factura.json
 ```
 
 **Subcommands**: `list`, `get`, `export`, `create`, `update`. (No `view` or `delete` subcommand exists — use `get` for inspection; type lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.)
 
-`types export` is the only command in this section that supports `-o, --output` (and `--force` for overwrite). `convert` does not.
+**`list` response** — `{"data":[…], "pagination":{"total","page","limit"}}`. Each item has `id`, `codeType`, `name`, `description`, `isPublic`, `isDraft`, `status`, `createdAt`, `updatedAt`. The identifier field is **`codeType`** (not `code`); pipe with `jq -r '.data[].codeType'` to extract codes for `--types` on `identify`.
 
-> **Depth:** `references/platform/types.md` — schema structure, field types, SDK/REST equivalents.
+**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), and `keepPropertyOrdering`. Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
+
+`types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
+
+> **Depth:** `references/platform/types.md` — full response shapes, SDK/REST equivalents.
 
 ## 5. Steps
 
@@ -252,7 +284,9 @@ docutray types create \
 ### Identify, then convert
 
 ```bash
-TYPE=$(docutray identify document.pdf --json | jq -r '.data.document_type')
+# Pick plausible candidate types from context/filename, then identify
+TYPE=$(docutray identify document.pdf --types invoice,receipt,factura_internacional --json \
+  | jq -r '.document_type.code')
 docutray convert document.pdf -t "$TYPE"
 ```
 
@@ -276,7 +310,9 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Non-interactive mode requires --api-key flag or api-key argument` | `docutray login` invoked without a TTY (agent / CI) | Use `docutray login --api-key dt_live_...`, the positional form, or set `DOCUTRAY_API_KEY` |
+| `Non-interactive mode requires --api-key flag or api-key argument` | Bare `docutray login` invoked without a TTY (agent / CI) | Use `docutray login --oauth` (preferred), `docutray login --api-key dt_live_...`, the positional form, or set `DOCUTRAY_API_KEY` |
+| OAuth login hangs / never returns | User hasn't authorized in browser yet, or callback can't reach `localhost:9876` | Wait up to 180s (default `--timeout`); pass `--timeout <seconds>` to shorten; verify port 9876 is free; use `--no-browser` and surface the URL to the user manually |
+| OAuth picked the wrong organization | User has multiple DocuTray orgs; CLI auto-selects the first (`Multiple organizations found, using: …` on stderr) | Log into the dashboard with the desired org, create an API key there, and use `docutray login --api-key <key>` instead |
 | `Error: Nonexistent flag: --output` (or `--format`) on `convert` | Flag does not exist | Use shell redirection `> result.json` |
 | `401 Unauthorized` | Missing or invalid key | Verify with `docutray status`; re-export `DOCUTRAY_API_KEY` |
 | `403 Forbidden` | Key lacks permissions | Issue a new key in the dashboard |
@@ -285,7 +321,9 @@ docutray convert invoice.pdf -t electronic-invoice
 | `413 File Too Large` | > 100MB | Split or compress |
 | `429 Rate Limited` | Throttled | Honor `Retry-After` |
 | `PROCESSING` stuck on a step | Pipeline failure | `docutray steps status <id>` for details |
-| Low identify confidence | No matching type | Restrict with `--types`, or design a custom type (Section 6) |
+| `{"error":"Validation error","status":400}` from `docutray identify` | Bare `docutray identify <file>` requires `--types`. The CLI `--help` shows it as optional but the API rejects requests without it | Pass `--types <comma-separated codes>` with plausible candidates (e.g. `--types invoice,receipt`) |
+| `403 You do not have permission to use the following document types: …` from `identify` | Some codes returned by `types list` aren't usable by your org | Drop the offending codes from the `--types` list; try a smaller candidate set |
+| Low identify confidence | No matching type among the candidates passed | Widen the `--types` list, or design a custom type (Section 6) |
 | `command types:view not found` / `types:delete not found` | Subcommand doesn't exist | Use `types get` / there is no delete subcommand |
 
 > **Depth:** `references/setup/troubleshooting.md` (env var/config conflicts, proxy/TLS, version checks) and `references/setup/rest.md` (full error code table).
@@ -294,7 +332,7 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Detail | Value |
 |---|---|
-| CLI package | `@docutray/cli` (verified against 0.2.1) |
+| CLI package | `@docutray/cli` (verified against 0.3.2) |
 | API key prefix | `dt_live_` |
 | Production base URL | `https://app.docutray.com` |
 | Staging base URL | `https://staging.docutray.com` |
