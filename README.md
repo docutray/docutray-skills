@@ -1,6 +1,6 @@
 # docutray-skills
 
-Agent skills for [DocuTray CLI](https://docs.docutray.com/cli) — AI-powered document processing from your coding agent.
+Agent skills for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-powered document processing from your coding agent.
 
 ## Install
 
