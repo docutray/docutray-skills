@@ -152,16 +152,16 @@ A user who logged in from another terminal can be verified the same way.
 
 | Command | Help URL |
 |---|---|
-| `docutray convert` | https://docs.docutray.com/cli/convert |
-| `docutray identify` | https://docs.docutray.com/cli/identify |
-| `docutray types list` | https://docs.docutray.com/cli/types/list |
-| `docutray types get` | https://docs.docutray.com/cli/types/get |
-| `docutray types export` | https://docs.docutray.com/cli/types/export |
-| `docutray types create` | https://docs.docutray.com/cli/types/create |
-| `docutray types update` | https://docs.docutray.com/cli/types/update |
-| `docutray steps run` | https://docs.docutray.com/cli/steps/run |
-| `docutray steps status` | https://docs.docutray.com/cli/steps/status |
-| `docutray login` / `logout` / `status` | https://docs.docutray.com/cli/login |
+| `docutray convert` | https://docs.docutray.com/docs/cli/commands/convert |
+| `docutray identify` | https://docs.docutray.com/docs/cli/commands/identify |
+| `docutray types list` | https://docs.docutray.com/docs/cli/commands/types |
+| `docutray types get` | https://docs.docutray.com/docs/cli/commands/types |
+| `docutray types export` | https://docs.docutray.com/docs/cli/commands/types |
+| `docutray types create` | https://docs.docutray.com/docs/cli/commands/types |
+| `docutray types update` | https://docs.docutray.com/docs/cli/commands/types |
+| `docutray steps run` | https://docs.docutray.com/docs/cli/commands/steps |
+| `docutray steps status` | https://docs.docutray.com/docs/cli/commands/steps |
+| `docutray login` / `logout` / `status` | https://docs.docutray.com/docs/cli/commands/login |
 
 Detailed flag tables for each operation live in:
 - `references/platform/convert.md`

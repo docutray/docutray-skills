@@ -1,6 +1,6 @@
 # docutray-skills
 
-Agent skills for [DocuTray CLI](https://docs.docutray.com/cli) — AI-powered document processing from your coding agent.
+Agent skills for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-powered document processing from your coding agent.
 
 ## Install
 
@@ -27,7 +27,7 @@ Key commands:
 - `docutray types list/get/export` — Manage extraction schemas
 - `docutray steps run/status` — Execute processing pipelines
 
-Learn more at [docutray.com](https://docutray.com) · [CLI docs](https://docs.docutray.com/cli)
+Learn more at [docutray.com](https://docutray.com) · [CLI docs](https://docs.docutray.com/docs/cli)
 
 ## Development
 
