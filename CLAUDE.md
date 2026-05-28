@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Agent skills repository for [DocuTray CLI](https://docs.docutray.com/cli) — AI-powered document processing. Skills teach AI coding agents (Claude Code, Cursor, Codex, etc.) how to use `docutray-cli` commands. Published via `npx skills add docutray/docutray-skills` following the [Agent Skills specification](https://agentskills.io).
+Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-powered document processing. Skills teach AI coding agents (Claude Code, Cursor, Codex, etc.) how to use `docutray-cli` commands. Published via `npx skills add docutray/docutray-skills` following the [Agent Skills specification](https://agentskills.io).
 
 ## Repository Structure
 
