@@ -2,11 +2,21 @@
 
 All notable changes to the `docutray` agent skill in this repository.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from `1.1.0` onward the skill is versioned with [Semantic Versioning](https://semver.org/). The skill version is also declared in `skills/docutray/SKILL.md` frontmatter (`metadata.version`). The `2026-05-07` consolidation release is the `1.0.0` baseline.
 
 ## [Unreleased]
 
 _No changes yet._
+
+## [1.1.0] - 2026-06-09
+
+### Changed
+
+- **Custom-type design now reads an example document first.** The custom-type workflow always requests a sample document and the agent reads it with its own native file/vision tool before generating a JSON Schema, then **proposes** the fields it detected and refines with the user — instead of building the schema from a verbal field description. Phrased generically for portability across agents (Claude Code, Cursor, Codex); no-sample escape hatch warns the schema is tentative and falls back to verbal description without hard-blocking. Updates `skills/docutray/SKILL.md` §6 and `references/advanced/custom-types-workflow.md` (Stages 1 and 3, example dialog). New OpenSpec requirement *"Custom-type design reads an example document first"* synced into `openspec/specs/docutray-skill/spec.md`. ([#14](https://github.com/docutray/docutray-skills/pull/14))
+
+### Fixed
+
+- **Corrected the DocuTray docs base URL.** The docs site serves all content under `/docs`, so `docs.docutray.com/cli` returned 404. Remapped the README and `CLAUDE.md` links to `/docs/cli`, and the command-reference deep links in `references/setup/cli.md` to `/docs/cli/commands/<cmd>` (all verified 200). ([#12](https://github.com/docutray/docutray-skills/pull/12))
 
 ## 2026-05-07 — Single-skill consolidation, OAuth login, CLI 0.3.2 floor
 

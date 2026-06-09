@@ -10,6 +10,8 @@ description: >-
   --base-url for staging), and troubleshooting. Use this skill whenever a
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
+metadata:
+  version: "1.1.0"
 ---
 
 # DocuTray
