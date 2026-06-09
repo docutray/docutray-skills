@@ -27,21 +27,27 @@ User wants to extract data from a document
 
 The principle: **gather information in stages, not all at once.** It prevents overwhelming users and lets the agent make informed suggestions.
 
-### Stage 1: Understand the document
+### Stage 1: Get and read an example document
+
+**Always ask for an example document before designing a schema.** The agent reads the actual file to discover the real fields, their positions, and their formats — that produces far better extraction descriptions than a verbal description ever could.
 
 **Agent asks:**
-> "Can you share or describe the document you want to process? What kind of document is it?"
-
-**Gather:**
-- Document type (invoice, receipt, form, report, …)
-- General purpose (what data needs extracting)
-- Sample file if available
+> "Can you share an example of this document? I'll read it to understand its structure before we design the schema."
 
 **Agent actions:**
-```bash
-docutray types list --search "<document keywords>"
-docutray identify sample-document.pdf  # if sample provided
-```
+1. **Read the document with your own file/vision tool.** Most coding agents (Claude Code, Cursor, Codex) can open PDFs and images directly — use that native capability to inspect the sample's layout, fields, and any tables. Do **not** rely on `docutray convert`/`identify` to "see" the document for schema design; read it yourself.
+2. Check for an existing matching type while you're at it:
+   ```bash
+   docutray types list --search "<document keywords>"
+   docutray identify sample-document.pdf --types <candidate-codes>
+   ```
+
+**Gather (from reading + a short confirmation):**
+- Document type (invoice, receipt, form, report, …)
+- General purpose (what data needs extracting)
+- The actual fields, locations, formats, and tables visible in the sample
+
+**No sample available?** Warn the user that the schema will be **tentative** and must be validated against a real document later, then fall back to gathering fields by description (Stages 3–4 as a verbal Q&A). Do not block — just flag the schema as unverified until a real document is run through it.
 
 ### Stage 2: Name and identity
 
@@ -57,16 +63,20 @@ The code must be unique and lowercase; the agent suggests one based on the name 
 
 ### Stage 3: Core fields
 
-**Agent asks:**
-> "What are the 3–5 most important pieces of data you need from this document? For each, tell me what it is and what kind of value (text, number, date, etc.)."
+Lead with what you read, don't interrogate. Having read the document in Stage 1, the agent **proposes** the fields it detected and asks the user to confirm or adjust — rather than asking the user to enumerate fields from scratch.
 
-**Gather per field:**
-- Name (agent normalizes to `snake_case`)
+**Agent says:**
+> "From the document I read these core fields: `invoice_number` (top-right), `issue_date` (under the number), `total` (bottom-right). Did I miss anything, and are these the ones you need?"
+
+**For each detected field, infer and record:**
+- Name (normalized to `snake_case`)
 - Type (`string`, `number`, `date`, `boolean`)
 - Where it appears on the page (for the JSON Schema `description`)
-- Expected format if relevant
+- Expected format if visible
 
-The agent builds the initial JSON Schema from this information using the **required + nullable** pattern (see `schema-design.md`).
+The user confirms, removes, or adds fields. The agent builds the initial JSON Schema from the agreed list using the **required + nullable** pattern (see `schema-design.md`).
+
+(If no sample was available, fall back to asking: "What are the 3–5 most important pieces of data you need, and what kind of value is each?" — and mark the schema tentative per Stage 1.)
 
 ### Stage 4: Additional fields and tabular data
 
@@ -267,21 +277,17 @@ A condensed walkthrough showing the progressive flow.
 
 **User:** I need to extract data from our purchase orders.
 
-**Agent:** Let me check if there's already a matching type.
+**Agent:** Can you share an example PO? I'll read it before we design the schema.
+
+**User:** Here's `sample-po.pdf`.
+
+**Agent:** *(reads the PDF with its file/vision tool, and checks for an existing type)*
 ```bash
 docutray types list --search "purchase order"
 ```
-No matching types. Let's create one. I suggest **"Purchase Order"** with code `purchase-order`. Sound good?
+No matching types. From the document I see: PO number (top-right, `PO-XXXXX`), vendor name (header), order date and delivery date (under the header), and a line-items table with columns Item code, Description, Quantity, Unit price, Total. I suggest a type **"Purchase Order"** with code `purchase-order` covering those fields. Did I miss anything?
 
-**User:** Yes.
-
-**Agent:** What are the most important fields you need?
-
-**User:** PO number, vendor name, order date, delivery date, and line items.
-
-**Agent:** Got it. For the line items table, what columns does it have?
-
-**User:** Item code, description, quantity, unit price, total.
+**User:** That's all of them.
 
 **Agent:** Any special formatting — date format, decimal separators, language, layout?
 
