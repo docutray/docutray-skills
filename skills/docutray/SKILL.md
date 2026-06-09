@@ -10,6 +10,8 @@ description: >-
   --base-url for staging), and troubleshooting. Use this skill whenever a
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
+metadata:
+  version: "1.1.0"
 ---
 
 # DocuTray
@@ -254,9 +256,10 @@ When no existing type fits, design a new document type. The high-level flow:
 
 1. **Check first.** Run `docutray types list --search <term>` and `docutray identify <file>` before creating anything.
 2. **Decide.** High-confidence existing match → use it. Partial match → ask the user (modify or create new). No match → create new.
-3. **Gather progressively.** Don't dump every question at once: name/code → main fields → additional fields & tabular data → prompt hints → review → execute.
-4. **Create or update.** Use `docutray types create` (full flag set) or `docutray types update <code>`. Both accept `--schema` (file path or inline JSON), `--name`, `--description`, `--prompt-hints`, `--identify-hints`, `--conversion-mode {json|toon|multi_prompt}`, `--keep-ordering`, `--publish`/`--draft`. `create` additionally requires `--code`.
-5. **Test.** Run `docutray convert <sample> -t <code>` and iterate.
+3. **Get and read an example first.** Always ask for an example document and read it with your own file/vision tool (Read/vision — most agents open PDFs and images directly) before generating a schema. Then **propose** the fields you detected and let the user adjust — don't make them enumerate fields blind. No sample? Warn the schema is tentative (validate against a real document later) and fall back to gathering fields by description; don't block.
+4. **Gather the rest progressively.** Don't dump every question at once: name/code → confirm detected fields → additional fields & tabular data → prompt hints → review → execute.
+5. **Create or update.** Use `docutray types create` (full flag set) or `docutray types update <code>`. Both accept `--schema` (file path or inline JSON), `--name`, `--description`, `--prompt-hints`, `--identify-hints`, `--conversion-mode {json|toon|multi_prompt}`, `--keep-ordering`, `--publish`/`--draft`. `create` additionally requires `--code`.
+6. **Test.** Run `docutray convert <sample> -t <code>` and iterate.
 
 ```bash
 docutray types create \
