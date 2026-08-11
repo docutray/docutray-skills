@@ -3,6 +3,7 @@
 Execute and monitor processing steps. Steps are reusable processing pipelines configured in the DocuTray dashboard; the CLI/SDK/REST surface lets you run a step on a document and poll its execution status.
 
 Verified against `@docutray/cli/0.2.1`. Run `docutray steps run --help` and `docutray steps status --help` to confirm.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## CLI
 
@@ -137,60 +138,67 @@ docutray steps run extract-fields doc.pdf --no-wait \
 ### Python
 
 ```python
+from pathlib import Path
+
 from docutray import Client
 
 client = Client()
 
-# Default: waits for completion
-execution = client.steps.run(step_id="extract-fields", source="invoice.pdf")
-print(execution.id, execution.status)
+# The SDK exposes only the async form; it returns immediately
+execution = client.steps.run_async(step_id="extract-fields", file=Path("invoice.pdf"))
+print(execution.execution_id, execution.status)
 
-# Async (no_wait)
-execution = client.steps.run(step_id="extract-fields", source="invoice.pdf", no_wait=True)
+# Block until done (equivalent to the CLI's default wait)
+final = execution.wait(on_status=lambda s: print(s.status))
+print(final.data)
 
-# Poll
-status = client.steps.status(execution.id)
+# Or poll manually
+status = client.steps.get_status(execution.execution_id)
 print(status.status)
 ```
+
+Provide exactly one source: `file`, `url`, or `file_base64`. Optional: `content_type`, `document_metadata`.
 
 ### Node
 
 ```typescript
 import { DocuTray } from "docutray";
+import { readFileSync } from "node:fs";
 
 const client = new DocuTray();
 
-// Default: waits
-const execution = await client.steps.run({
+// The SDK exposes only the async form; it returns immediately
+const execution = await client.steps.runAsync({
   stepId: "extract-fields",
-  source: "invoice.pdf",
+  file: readFileSync("invoice.pdf"),
 });
+console.log(execution.id, execution.status);
 
-// Async
-const execution2 = await client.steps.run({
-  stepId: "extract-fields",
-  source: "invoice.pdf",
-  noWait: true,
-});
+// Block until done (equivalent to the CLI's default wait)
+const final = await execution.wait({ onStatus: (s) => console.log(s.status) });
+console.log(final.data);
 
-const status = await client.steps.status(execution2.id);
-console.log(status.status);
+// Or poll manually
+const status = await client.steps.getStatus(execution.id);
 ```
+
+Provide exactly one source: `file`, `url`, or `base64`. Optional: `contentType`, `filename`, `documentMetadata`, `webhookUrl`.
 
 ## REST API
 
 ```bash
-# Run
+# Run — the step id goes in the PATH, not a form field
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "step_id=extract-fields" \
-  -F "file=@invoice.pdf" \
-  https://app.docutray.com/api/steps
+  -F "image=@invoice.pdf" \
+  https://app.docutray.com/api/steps-async/extract-fields
 
 # Status
 curl -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  https://app.docutray.com/api/steps/status/exec_abc123
+  https://app.docutray.com/api/steps-async/status/exec_abc123
 ```
+
+> **Not re-verified against the live API.** Paths and the `image` part name are taken from both SDKs, which agree (`/api/steps-async/{stepId}`, `/api/steps-async/status/{executionId}`). The previously documented `/api/steps` with a `step_id` form field does not appear anywhere in either SDK.
 
 URL reference:
 
@@ -224,9 +232,9 @@ done
 ```python
 import time
 
-execution = client.steps.run(step_id="extract-fields", source="doc.pdf", no_wait=True)
+execution = client.steps.run_async(step_id="extract-fields", file=Path("doc.pdf"))
 while True:
-    status = client.steps.status(execution.id)
+    status = client.steps.get_status(execution.execution_id)
     if status.status in ("SUCCESS", "ERROR"):
         break
     time.sleep(2)
@@ -240,17 +248,16 @@ else:
 ### Node (with timeout)
 
 ```typescript
-const execution = await client.steps.run({
+const execution = await client.steps.runAsync({
   stepId: "extract-fields",
-  source: "doc.pdf",
-  noWait: true,
+  file: readFileSync("doc.pdf"),
 });
 
 const timeout = 60_000;
 const start = Date.now();
 
 while (Date.now() - start < timeout) {
-  const status = await client.steps.status(execution.id);
+  const status = await client.steps.getStatus(execution.id);
   if (status.status === "SUCCESS") { console.log(status.result); break; }
   if (status.status === "ERROR")   { console.error(status.error.message); break; }
   await new Promise(r => setTimeout(r, 2000));
@@ -272,12 +279,12 @@ while (Date.now() - start < timeout) {
 ### Retry on transient failure
 
 ```python
-from docutray.exceptions import APIError
+from docutray import APIError
 
 MAX_RETRIES = 3
 for attempt in range(MAX_RETRIES):
     try:
-        execution = client.steps.run(step_id="extract-fields", source="doc.pdf")
+        execution = client.steps.run_async(step_id="extract-fields", file=Path("doc.pdf"))
         break
     except APIError as e:
         if attempt == MAX_RETRIES - 1:

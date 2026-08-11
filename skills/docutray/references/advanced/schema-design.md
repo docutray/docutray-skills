@@ -352,3 +352,9 @@ A full invoice extraction schema:
   }
 }
 ```
+
+## From schema to export mapping
+
+The schema you design here is what a document type's **conversion spec** selects from: each column in the spec carries a `jsonPath` (`$.total`, `$.detalle[*].descripcion`) that points at a field in this schema. A path that names a field the schema doesn't extract will never have a value to place in the column.
+
+So design the schema first, then write the spec against it — and re-check the spec whenever you rename or restructure a field. See `conversion-spec.md`.

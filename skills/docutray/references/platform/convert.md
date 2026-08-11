@@ -1,6 +1,7 @@
 # Convert — detailed reference
 
 Verified against `@docutray/cli/0.2.1`. Run `docutray convert --help` to confirm.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## CLI usage
 
@@ -69,30 +70,42 @@ DocuTray's default org schemas often use Spanish key names (`moneda`, `detalle`,
 ## Python SDK
 
 ```python
+from pathlib import Path
+
 from docutray import Client
 
 client = Client()
 
-# Sync — file path
-result = client.convert(file_path="invoice.pdf", document_type="electronic-invoice")
+# Sync — exactly one source: file, url, or file_base64
+result = client.convert.run(
+    file=Path("invoice.pdf"),
+    document_type_code="electronic-invoice",
+)
 print(result.data)
 
-# From bytes / buffer
-with open("invoice.pdf", "rb") as f:
-    result = client.convert(
-        file=f.read(),
-        file_name="invoice.pdf",
-        document_type="electronic-invoice",
-    )
+# From a URL, with metadata
+result = client.convert.run(
+    url="https://example.com/invoice.pdf",
+    document_type_code="electronic-invoice",
+    document_metadata={"ref": "order-123"},
+)
 
-# Async client
+# Async polling — run_async() returns a status with .wait()
+status = client.convert.run_async(
+    file=Path("large.pdf"),
+    document_type_code="electronic-invoice",
+)
+result = status.wait(on_status=lambda s: print(s.status))
+current = client.convert.get_status(status.conversion_id)   # or poll manually
+
+# Asyncio client
 from docutray import AsyncClient
 
 async def run():
     aclient = AsyncClient()
-    result = await aclient.convert(
-        file_path="invoice.pdf",
-        document_type="electronic-invoice",
+    result = await aclient.convert.run(
+        file=Path("invoice.pdf"),
+        document_type_code="electronic-invoice",
     )
 ```
 
@@ -104,29 +117,39 @@ import { readFileSync } from "node:fs";
 
 const client = new DocuTray();
 
-// File path
-const r1 = await client.convert({
-  filePath: "invoice.pdf",
-  documentType: "electronic-invoice",
+// Sync — exactly one source: file, url, or base64
+const r1 = await client.convert.run({
+  file: readFileSync("invoice.pdf"),
+  documentTypeCode: "electronic-invoice",
+});
+console.log(r1.data);
+
+// From a URL, with metadata
+const r2 = await client.convert.run({
+  url: "https://example.com/invoice.pdf",
+  documentTypeCode: "electronic-invoice",
+  documentMetadata: { ref: "order-123" },
 });
 
-// Buffer
-const buf = readFileSync("invoice.pdf");
-const r2 = await client.convert({
-  file: buf,
-  fileName: "invoice.pdf",
-  documentType: "electronic-invoice",
+// Async polling — runAsync() returns a status with .wait()
+const status = await client.convert.runAsync({
+  file: readFileSync("large.pdf"),
+  documentTypeCode: "electronic-invoice",
 });
+const result = await status.wait({ onStatus: (s) => console.log(s.status) });
+const current = await client.convert.getStatus(status.conversion_id);
 ```
 
 ## REST API
+
+> The multipart file part is named **`image`**, not `file` — confirmed from the SDKs and from the live `identify` endpoint's rejection of a `file` part. The `convert` endpoint itself was not separately re-run.
 
 ### Synchronous
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@invoice.pdf" \
+  -F "image=@invoice.pdf" \
   -F "document_type=electronic-invoice" \
   https://app.docutray.com/api/convert
 ```
@@ -161,7 +184,7 @@ Start the conversion and poll the status endpoint until `SUCCESS` or `ERROR`. Th
 # Start
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@large-document.pdf" \
+  -F "image=@large-document.pdf" \
   -F "document_type=electronic-invoice" \
   https://app.docutray.com/api/convert-async
 
@@ -186,7 +209,8 @@ done
 
 # Identify each file first, then convert
 for f in documents/*.pdf; do
-  TYPE=$(docutray identify "$f" --json | jq -r '.data.document_type')
+  TYPE=$(docutray identify "$f" --types invoice,receipt,electronic-invoice --json \
+    | jq -r '.document_type.code')
   if [ -n "$TYPE" ] && [ "$TYPE" != "null" ]; then
     docutray convert "$f" -t "$TYPE" > "${f%.pdf}.json"
   fi
@@ -204,7 +228,10 @@ async def main():
     client = AsyncClient()
     pdfs = list(Path("documents").glob("*.pdf"))
     results = await asyncio.gather(
-        *[client.convert(file_path=str(p), document_type="electronic-invoice") for p in pdfs]
+        *[
+            client.convert.run(file=p, document_type_code="electronic-invoice")
+            for p in pdfs
+        ]
     )
     for p, r in zip(pdfs, results):
         p.with_suffix(".json").write_text(json.dumps(r.data))
@@ -216,6 +243,7 @@ asyncio.run(main())
 
 ```typescript
 import { DocuTray } from "docutray";
+import { readFileSync } from "node:fs";
 import { readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -224,7 +252,10 @@ const files = (await readdir("documents")).filter(f => f.endsWith(".pdf"));
 
 const results = await Promise.all(
   files.map(f =>
-    client.convert({ filePath: join("documents", f), documentType: "electronic-invoice" })
+    client.convert.run({
+      file: readFileSync(join("documents", f)),
+      documentTypeCode: "electronic-invoice",
+    })
   )
 );
 
@@ -242,9 +273,9 @@ docutray convert invoice.pdf -t electronic-invoice | jq '.data.monto_total'
 # Save the data subtree only
 docutray convert invoice.pdf -t electronic-invoice | jq '.data' > extracted.json
 
-# Chain identify → convert
+# Chain identify → convert (identify requires --types; its response has no `data` wrapper)
 docutray convert doc.pdf \
-  -t "$(docutray identify doc.pdf --json | jq -r '.data.document_type')"
+  -t "$(docutray identify doc.pdf --types invoice,receipt --json | jq -r '.document_type.code')"
 ```
 
 ## Supported file formats

@@ -1,6 +1,6 @@
 # Custom document type workflow — detailed reference
 
-This file is the playbook agents follow when guiding a user through creating or modifying a document type. CLI commands are verified against `@docutray/cli/0.2.1` — run `docutray types create --help` / `docutray types update --help` to confirm.
+This file is the playbook agents follow when guiding a user through creating or modifying a document type. CLI commands are documented against `@docutray/cli/0.4.0` — run `docutray types create --help` / `docutray types update --help` to confirm.
 
 ## Decision tree
 
@@ -149,21 +149,36 @@ docutray types create \
 docutray convert sample-po.pdf -t acme-purchase-order
 ```
 
+> **The code you pass is not always the code you get.** For org-owned types the API namespaces `--code` with an organization prefix — passing `--code acme-purchase-order` in an org named *Acme* yields a stored `codeType` like `acme_acme-purchase-order`, and the un-prefixed code does **not** resolve (`Document type "acme-purchase-order" not found`). Public catalog types (`factura`, `bl`, …) carry no prefix.
+>
+> **Always take the real code from the create response** instead of reusing what you passed:
+>
+> ```bash
+> CODE=$(docutray types create --name "…" --code acme-purchase-order \
+>   --description "…" --schema schema.json --json | jq -r '.codeType' | head -1)
+> docutray convert sample-po.pdf -t "$CODE"
+> ```
+>
+> The `| head -1` is deliberate: `types create` output is **not reliably a single JSON object** — it has been observed emitting two, the second with `isDraft` and `status` nulled. Take the first and don't assume a lone document.
+
+> **A code that already exists fails with a bare `500`.** Re-running a create with a taken code returns `{"error":"Error processing request","status":500}` — no conflict status, and nothing naming the code as the cause. Before concluding the API is down, check whether the type already exists: `docutray types list --search <name>`.
+
 The agent reviews the output with the user and iterates the schema if needed.
 
 ## `types create` — full flag reference
 
-Verified against `docutray types create --help`.
+From `docutray types create --help` (`@docutray/cli/0.4.0`).
 
 | Flag | Required | Description |
 |---|---|---|
-| `--code=<value>` | yes | Unique code (lowercase, numbers, underscores or hyphens) |
+| `--code=<value>` | yes | Requested code (lowercase, numbers, underscores or hyphens). **Org-owned types get an organization prefix** — read the real `codeType` from the response |
 | `--description=<value>` | yes | One-sentence description |
 | `--name=<value>` | yes | Human-readable name |
-| `--schema=<value>` | yes | JSON Schema as a file path **or** inline JSON string |
+| `--schema=<value>` | yes | JSON Schema as a file path **or** inline JSON string. Given a full `types export` payload, its embedded `conversionSpec` is carried over too |
 | `--prompt-hints=<value>` | no | General extraction prompt hints |
 | `--identify-hints=<value>` | no | Hints for automatic identification |
 | `--conversion-mode=<json\|toon\|multi_prompt>` | no | Conversion mode |
+| `--conversion-spec=<value>` | no | Export spec (JSON → CSV/Excel column mapping): file path or inline JSON. Accepts a bare spec (`{"columns":[…]}` / `{"sheets":[…]}`) or a full `types export` payload. Takes precedence over a spec embedded in `--schema` |
 | `--keep-ordering` | no | Preserve property ordering in output |
 | `--publish` | no | Publish immediately (equivalent to `--no-draft`) |
 | `--draft` | no | Create as draft (the default) |
@@ -189,25 +204,43 @@ docutray types create --name "Invoice" --code invoice \
 docutray types create --name "Invoice" --code invoice \
   --description "Standard invoice" --schema schema.json \
   --conversion-mode toon
+
+# With an export spec (JSON → CSV/Excel column mapping)
+docutray types create --name "Invoice" --code invoice \
+  --description "Standard invoice" --schema schema.json \
+  --conversion-spec spec.json
+
+# Round-trip: recreate an exported type — schema AND export spec are carried over
+docutray types export factura -o factura.json
+docutray types create --name "Copia" --code factura_copy \
+  --description "Copy of factura" --schema factura.json
 ```
+
+See `conversion-spec.md` for the spec format and `jsonPath` authoring.
 
 ## Modifying types — `types update`
 
-Verified against `docutray types update --help`. The `code` is positional and cannot be changed; everything else is optional, but at least one updatable field is required.
+From `docutray types update --help` (`@docutray/cli/0.4.0`). The `code` is positional and cannot be changed; everything else is optional, but at least one updatable field is required.
 
 | Flag | Description |
 |---|---|
 | (positional) `CODE` | Document type code to update |
 | `--name=<value>` | New name |
 | `--description=<value>` | New description |
-| `--schema=<value>` | New JSON Schema (file path or inline JSON) |
+| `--schema=<value>` | New JSON Schema (file path or inline JSON). Unlike `types create`, a `conversionSpec` embedded in a `types export` payload is **ignored** — use `--conversion-spec` to change it |
 | `--prompt-hints=<value>` | New prompt hints |
 | `--identify-hints=<value>` | New identify hints |
 | `--conversion-mode=<json\|toon\|multi_prompt>` | New conversion mode |
+| `--conversion-spec=<value>` | Replace the export spec: file path or inline JSON, same parsing as `create` |
+| `--no-conversion-spec` | Remove the export spec from the type. Mutually exclusive with `--conversion-spec` |
 | `--[no-]keep-ordering` | Toggle ordering preservation |
 | `--[no-]draft` | Set draft status |
 | `--publish` | Publish (sets draft=false) |
 | `--json` | Force JSON output |
+
+Either conversion-spec flag on its own satisfies the "at least one field to update" check.
+
+**Why `update --schema` doesn't carry the spec:** an update is partial by contract, so pulling a `conversionSpec` out of a schema file would modify a field the user never named. `create` is the opposite case — it builds a type from scratch, so reproducing the whole exported definition is what you want.
 
 ### Workflow
 
@@ -228,14 +261,24 @@ docutray types update acme-purchase-order \
 docutray types update acme-purchase-order \
   --identify-hints "Acme PO v2 — new logo format."
 
-# 5. Publish a draft
+# 5. (Optional) change the export spec — pick ONE of these, they undo each other
+docutray types update acme-purchase-order --conversion-spec spec.json   # replace it
+# docutray types update acme-purchase-order --no-conversion-spec        # or clear it
+
+# 6. Publish a draft
 docutray types update acme-purchase-order --publish
 
-# 6. Test
+# 7. Test
 docutray convert sample-po.pdf -t acme-purchase-order
 ```
 
 Compare the new output against the previous version to verify improvements before re-publishing.
+
+If you changed the export spec, confirm it stored — an API deployment predating `conversionSpec` support accepts and discards the field without error:
+
+```bash
+docutray types get acme-purchase-order    # → anything other than "(none)"
+```
 
 ## Multi-document files
 

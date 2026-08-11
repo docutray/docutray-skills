@@ -2,7 +2,8 @@
 
 Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
 
-Verified against `@docutray/cli/0.3.2` and a real org listing. Run `docutray types <subcommand> --help` to confirm.
+Verified against `@docutray/cli/0.3.2` and a real org listing; `conversionSpec` coverage documented from `@docutray/cli/0.4.0`. Run `docutray types <subcommand> --help` to confirm.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## Subcommands
 
@@ -41,6 +42,7 @@ Common type fields (returned by all three commands):
 | `identifyPromptHints` | string | Free-form hints applied during identification |
 | `conversionMode` | string | `"json"` \| `"toon"` \| `"multi_prompt"` |
 | `keepPropertyOrdering` | boolean | When `true`, preserves the field order from the schema |
+| `conversionSpec` | object \| null | Export mapping (JSON → CSV/Excel columns), verbatim as stored; `null` when no spec is set. **Absent from `list` items** — only the single-type endpoints return it. See `../advanced/conversion-spec.md` |
 
 ### Envelope
 
@@ -167,12 +169,42 @@ Flat object — no `data` envelope. Includes the full type definition:
   "identifyPromptHints": "",
   "conversionMode": "json",
   "keepPropertyOrdering": false,
+  "conversionSpec": {
+    "sheets": [
+      { "name": "Encabezado", "columns": [{ "header": "Folio", "jsonPath": "$.folio" }] },
+      { "name": "Detalle", "columns": [{ "header": "Descripción", "jsonPath": "$.detalle[*].descripcion" }] }
+    ]
+  },
   "createdAt": "2025-06-19T16:35:43.856Z",
   "updatedAt": "2025-08-19T13:50:37.744Z"
 }
 ```
 
 > **Earlier versions (`@docutray/cli/0.3.1` and below)**: only metadata was returned — `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` were absent. Upgrade to 0.3.2+ to inspect the schema via the CLI.
+
+> **`conversionSpec` does not need 0.4.0 to be *read*.** `get` / `export` dump the API object verbatim, so the field has been travelling in JSON output since the API started returning it. What 0.4.0 adds is the `Export spec` summary line below and the write flags (`--conversion-spec`, `--no-conversion-spec`).
+
+### Human output and the `Export spec` line
+
+Non-`--json` output summarizes the conversion spec instead of dumping it — a 14-column spec would flood the key-value listing. Four forms:
+
+```
+Export spec: 2 sheets, 13 columns     # multi-sheet ({"sheets": […]})
+Export spec: 13 columns               # single table ({"columns": […]})
+Export spec: 0 columns                # stored but empty ({"columns": []})
+Export spec: (none)                   # conversionSpec is null or absent
+Export spec: (present)                # not summarizable — in practice, conversionSpec is {}
+```
+
+`0 columns` and `(none)` are different states: the first is an empty spec that exports a column-less file, the second is no spec at all. `(present)` is a deliberate fallback — a cosmetic summary line never costs you the whole output. Treat "anything other than `(none)`" as "a spec is stored"; use `--json` when you need the real contents.
+
+`--json` (and piped) output is **never** summarized: `conversionSpec` travels verbatim as the API returned it, with no derived or computed fields.
+
+```bash
+docutray types get factura --json | jq .conversionSpec
+```
+
+> Depth on the spec format, `jsonPath` authoring, and the `create`/`update` flags: `../advanced/conversion-spec.md`.
 
 ## Export
 
@@ -205,7 +237,7 @@ docutray types export factura -o factura-type.json --force
 
 ### Export response
 
-Identical to `types get` — flat object including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering`. The on-disk file written with `-o` contains the same JSON.
+Identical to `types get` — flat object including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, `keepPropertyOrdering`, and `conversionSpec`. The on-disk file written with `-o` contains the same JSON, which is what makes the export payload directly reusable as `--schema` / `--conversion-spec` input on `types create`.
 
 ## SDK equivalents
 
@@ -216,20 +248,19 @@ from docutray import Client
 
 client = Client()
 
-# List
-result = client.types.list()
-for t in result.data:
-    print(f"{t.code_type}: {t.name}")    # property name in SDK may be code_type or codeType
+# List — returns a Page; items are on .data
+page = client.document_types.list()
+for t in page.data:
+    print(f"{t.codeType}: {t.name}")
 
-# Get
-result = client.types.get("factura")
-print(result.data.name, result.data.status)
+page = client.document_types.list(search="factura")
 
-# Export (same shape as get today)
-result = client.types.export("factura")
+# Get — takes the internal id, NOT the codeType, and returns the type directly
+doc_type = client.document_types.get(doc_type_id)
+print(doc_type.name, doc_type.status, doc_type.jsonSchema)
 ```
 
-(SDK property casing may differ — verify against the SDK source. The CLI returns the JSON shape shown above; SDKs typically convert `codeType` → `code_type` in Python and keep `codeType` in JS.)
+The Python model keeps the API's camelCase field names (`codeType`, `isDraft`, `jsonSchema`) rather than converting to snake_case; only method and argument names are snake_case. `DocumentType` allows extra fields, so keys the SDK doesn't declare (such as `conversionSpec`) are reachable via `doc_type.model_extra`.
 
 ### Node
 
@@ -238,16 +269,23 @@ import { DocuTray } from "docutray";
 
 const client = new DocuTray();
 
-// List
-const list = await client.types.list();
-for (const t of list.data) console.log(`${t.codeType}: ${t.name}`);
+// List — returns a Page; items are on .data
+const page = await client.documentTypes.list();
+for (const t of page.data) console.log(`${t.codeType}: ${t.name}`);
 
-// Get
-const got = await client.types.get("factura");
-console.log(got.data.name, got.data.status);
+// Get — takes the internal id, NOT the codeType, and returns the type directly
+const docType = await client.documentTypes.get(docTypeId);
+console.log(docType.name, docType.status, docType.jsonSchema);
+```
 
-// Export (same shape as get today)
-const exported = await client.types.export("factura");
+**Neither SDK has an `export()` method** — `list`, `get`, `create`, `update`, and `validate` are the whole surface. To produce an export payload, use the CLI (`docutray types export <code>`); `get` returns the same object.
+
+**Resolving a code to an id.** The CLI accepts a `codeType` everywhere and resolves it internally; the SDKs do not. Look the id up first:
+
+```typescript
+const page = await client.documentTypes.list({ search: "factura" });
+const match = page.data.find((t) => t.codeType === "factura");
+const docType = await client.documentTypes.get(match.id);
 ```
 
 ## REST API equivalents
@@ -301,4 +339,4 @@ for CODE in $(docutray types list --limit 50 --json | jq -r '.data[].codeType');
 done
 ```
 
-Each file contains the full type definition (metadata + `jsonSchema` + hints + conversion mode), so the snapshot is sufficient to recreate the type via `docutray types create`.
+Each file contains the full type definition (metadata + `jsonSchema` + hints + conversion mode + `conversionSpec`), so the snapshot is sufficient to recreate the type via `docutray types create --schema <file>` — which carries the embedded export mapping over as well as the schema.
