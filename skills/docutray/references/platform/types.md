@@ -41,7 +41,7 @@ Common type fields (returned by all three commands):
 | `identifyPromptHints` | string | Free-form hints applied during identification |
 | `conversionMode` | string | `"json"` \| `"toon"` \| `"multi_prompt"` |
 | `keepPropertyOrdering` | boolean | When `true`, preserves the field order from the schema |
-| `conversionSpec` | object \| null | Export mapping (JSON → CSV/Excel columns), verbatim as stored; `null` when no spec is set. **Absent from `list` items** — only the single-type endpoints return it. Requires `@docutray/cli/0.4.0+`. See `../advanced/conversion-spec.md` |
+| `conversionSpec` | object \| null | Export mapping (JSON → CSV/Excel columns), verbatim as stored; `null` when no spec is set. **Absent from `list` items** — only the single-type endpoints return it. See `../advanced/conversion-spec.md` |
 
 ### Envelope
 
@@ -179,17 +179,22 @@ Flat object — no `data` envelope. Includes the full type definition:
 }
 ```
 
-> **Earlier versions (`@docutray/cli/0.3.1` and below)**: only metadata was returned — `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` were absent. Upgrade to 0.3.2+ to inspect the schema via the CLI. `conversionSpec` requires 0.4.0+.
+> **Earlier versions (`@docutray/cli/0.3.1` and below)**: only metadata was returned — `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` were absent. Upgrade to 0.3.2+ to inspect the schema via the CLI.
+
+> **`conversionSpec` does not need 0.4.0 to be *read*.** `get` / `export` dump the API object verbatim, so the field has been travelling in JSON output since the API started returning it. What 0.4.0 adds is the `Export spec` summary line below and the write flags (`--conversion-spec`, `--no-conversion-spec`).
 
 ### Human output and the `Export spec` line
 
-Non-`--json` output summarizes the conversion spec instead of dumping it — a 14-column spec would flood the key-value listing. Three forms:
+Non-`--json` output summarizes the conversion spec instead of dumping it — a 14-column spec would flood the key-value listing. Four forms:
 
 ```
 Export spec: 2 sheets, 14 columns     # multi-sheet ({"sheets": […]})
 Export spec: 5 columns                # single table ({"columns": […]})
 Export spec: (none)                   # conversionSpec is null or absent
+Export spec: (present)                # a spec the CLI can't summarize (columns/sheets isn't an array)
 ```
+
+`(present)` is a deliberate fallback — a cosmetic summary line never costs you the whole output. Treat "anything other than `(none)`" as "a spec is stored"; use `--json` when you need the real contents.
 
 `--json` (and piped) output is **never** summarized: `conversionSpec` travels verbatim as the API returned it, with no derived or computed fields.
 

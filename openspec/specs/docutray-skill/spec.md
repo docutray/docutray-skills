@@ -110,7 +110,7 @@ Every `docutray` command, subcommand, flag, and argument shown in `skills/docutr
 ### Requirement: Convert response shape is schema-driven
 Documentation of the `docutray convert` response SHALL describe the body as `{ "data": { ...keys defined by the active document-type schema... } }` and SHALL NOT include a fabricated `"success"` boolean wrapper or a `"document_type"` / `"fields"` envelope around the extracted data.
 
-Documentation of the `docutray types get` and `docutray types export` response SHALL list `conversionSpec` among the returned fields, described as the stored spec verbatim or `null` when none is stored, and SHALL note that it is absent from `types list` responses. Documentation of the human-readable (non-JSON) output of `types get` SHALL show the `Export spec` summary line, whose three forms are a sheet-and-column count for a multi-sheet spec, a column count for a single-table spec, and `(none)` when no spec is stored.
+Documentation of the `docutray types get` and `docutray types export` response SHALL list `conversionSpec` among the returned fields, described as the stored spec verbatim or `null` when none is stored, and SHALL note that it is absent from `types list` responses. Documentation of the human-readable (non-JSON) output of `types get` SHALL show the `Export spec` summary line, whose forms are a sheet-and-column count for a multi-sheet spec, a column count for a single-table spec, `(none)` when no spec is stored, and `(present)` when a stored spec cannot be summarized. It SHALL NOT present the count forms as exhaustive.
 
 #### Scenario: No fabricated wrapper
 - **WHEN** any convert response example is read
@@ -126,7 +126,7 @@ Documentation of the `docutray types get` and `docutray types export` response S
 
 #### Scenario: Export spec summary line documented
 - **WHEN** the human-readable output of `docutray types get` is documented
-- **THEN** it SHALL show the `Export spec` line and its three forms: `N sheets, M columns`, `M columns`, and `(none)`
+- **THEN** it SHALL show the `Export spec` line and all four of its forms — `N sheets, M columns`, `M columns`, `(none)`, and the `(present)` fallback — and SHALL frame a stored-spec check as "not `(none)`" rather than a match against the count forms
 
 #### Scenario: JSON output is unsummarized
 - **WHEN** the documentation contrasts human and JSON output of `types get`

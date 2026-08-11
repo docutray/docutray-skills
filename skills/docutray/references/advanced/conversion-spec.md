@@ -59,7 +59,9 @@ Source: the `ConversionSpecColumn` interface exported by `docutray@0.1.5`.
 | `type` | no | `"data"` or `"formula"`. Defaults to `"data"` when omitted |
 | `formula` | no | Excel formula, used only when `type` is `"formula"` |
 
-`jsonPath` is optional on purpose: a formula column carries a `formula` instead, and the API also accepts placeholder data columns with no path at all — those export as empty cells, which is useful when a downstream template expects a column position to exist.
+`jsonPath` is optional on purpose: a formula column carries a `formula` instead.
+
+> **A data column with no `jsonPath` is accepted on write but is not safe in a `sheets` spec.** The API's write path tolerates it (it stores as a placeholder that exports as an empty cell), but multi-sheet **CSV** export validates more strictly and rejects a data column without a path — so the spec saves cleanly and then fails at export time. Give every data column a `jsonPath`, or mark it `"type": "formula"`.
 
 ## Writing `jsonPath`
 
@@ -134,6 +136,12 @@ docutray types create --name "Factura v2" --code factura_v2 \
   --conversion-spec factura.json      # reuses factura's export mapping
 ```
 
+This only works when the source type actually has a spec. Against an export whose `conversionSpec` is `null`, the flag fails with `Invalid conversion spec: expected an object with "columns" or "sheets"` — the CLI finds the key and then rejects its value. Check before copying:
+
+```bash
+docutray types get factura            # → "Export spec: (none)" means there's nothing to copy
+```
+
 Without the flag (and without a spec embedded in `--schema`, see below) the `conversionSpec` key is simply not sent — the type is created with no export mapping.
 
 ## Replacing and clearing — `types update`
@@ -178,7 +186,10 @@ Human-readable output carries an **`Export spec`** summary line rather than dump
 Export spec: 2 sheets, 14 columns     # multi-sheet
 Export spec: 5 columns                # single-table
 Export spec: (none)                   # no spec stored
+Export spec: (present)                # stored, but not summarizable (columns/sheets isn't an array)
 ```
+
+`(present)` is a deliberate fallback: a cosmetic summary line must never cost the user the whole output, so an unrecognized shape degrades instead of throwing. When checking whether a spec stored, test for **not `(none)`** rather than matching one of the count forms.
 
 JSON output is unsummarized — `conversionSpec` travels verbatim, exactly as the API returned it, with no derived fields:
 
@@ -224,7 +235,9 @@ import { DocuTray, isMultiSheetConversionSpec } from "docutray";
 
 const client = new DocuTray();
 
-const docType = await client.types.get("factura");
+// Note: documentTypes.get() takes the internal `id`, not the `codeType`.
+// The CLI resolves code → id for you; in the SDK, look it up via list().
+const docType = await client.documentTypes.get(docTypeId);
 
 if (isMultiSheetConversionSpec(docType.conversionSpec)) {
   console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));

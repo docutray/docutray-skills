@@ -247,9 +247,9 @@ docutray types update acme-purchase-order \
 docutray types update acme-purchase-order \
   --identify-hints "Acme PO v2 — new logo format."
 
-# 5. (Optional) replace or clear the export spec
-docutray types update acme-purchase-order --conversion-spec spec.json
-docutray types update acme-purchase-order --no-conversion-spec
+# 5. (Optional) change the export spec — pick ONE of these, they undo each other
+docutray types update acme-purchase-order --conversion-spec spec.json   # replace it
+# docutray types update acme-purchase-order --no-conversion-spec        # or clear it
 
 # 6. Publish a draft
 docutray types update acme-purchase-order --publish
@@ -263,7 +263,7 @@ Compare the new output against the previous version to verify improvements befor
 If you changed the export spec, confirm it stored — an API deployment predating `conversionSpec` support accepts and discards the field without error:
 
 ```bash
-docutray types get acme-purchase-order    # → "Export spec: 5 columns", not "(none)"
+docutray types get acme-purchase-order    # → anything other than "(none)"
 ```
 
 ## Multi-document files

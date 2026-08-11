@@ -219,7 +219,7 @@ docutray types export factura --force -o factura.json
 
 **`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), `keepPropertyOrdering`, and `conversionSpec` (the export mapping, verbatim as stored, or `null`). Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
 
-`conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 14 columns`, `5 columns`, or `(none)`. JSON output is never summarized.
+`conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 14 columns`, `5 columns`, `(none)`, or `(present)` when the shape isn't summarizable. JSON output is never summarized. (Reading the field in JSON works on 0.3.x too — 0.4.0 adds the summary line and the write flags.)
 
 `types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
 
@@ -298,7 +298,7 @@ docutray types create --name "Invoice" --code invoice --description "…" \
 
 docutray types update invoice --conversion-spec spec.json   # replace
 docutray types update invoice --no-conversion-spec          # clear (mutually exclusive with the above)
-docutray types get invoice                                  # → "Export spec: 5 columns"
+docutray types get invoice                                  # → "Export spec: 5 columns" (≠ "(none)")
 ```
 
 **The `--schema` asymmetry:** `create --schema <export payload>` carries the embedded `conversionSpec` over, so `types export` → `types create` round-trips the mapping with no extra flags. `update --schema <export payload>` deliberately does **not** — an update only touches the fields you name; use `--conversion-spec` to change it. An explicit `--conversion-spec` wins over an embedded one.

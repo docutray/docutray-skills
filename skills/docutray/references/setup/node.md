@@ -175,7 +175,8 @@ console.log(docType.schema);
 ```typescript
 import { isMultiSheetConversionSpec } from "docutray";
 
-const docType = await client.types.get("invoice");
+// documentTypes.get() takes the internal `id`, not the `codeType`
+const docType = await client.documentTypes.get(docTypeId);
 
 if (isMultiSheetConversionSpec(docType.conversionSpec)) {
   console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));

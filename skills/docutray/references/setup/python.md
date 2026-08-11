@@ -149,7 +149,16 @@ doc_type = client.types.get("invoice")
 print(doc_type.schema)
 ```
 
-A document type also carries `conversionSpec` — the JSON → CSV/Excel column mapping used by tray export — which can be set on create and update. Verify the property casing (`conversion_spec` vs `conversionSpec`) against your installed SDK version before relying on it; see `../advanced/conversion-spec.md` for the spec format.
+A document type also carries `conversionSpec` — the JSON → CSV/Excel column mapping used by tray export.
+
+> **The Python SDK cannot write it (as of `docutray` 0.2.1).** `document_types.create()` and `.update()` take explicit keyword arguments only — no `conversion_spec` parameter and no `**kwargs` — so passing one raises `TypeError: unexpected keyword argument`. **Reading** works incidentally, because the `DocumentType` model allows extra fields:
+>
+> ```python
+> doc_type = client.document_types.get(doc_type_id)
+> spec = doc_type.model_extra.get("conversionSpec")   # API casing, not snake_case
+> ```
+>
+> To set or clear a spec from a Python project, shell out to `docutray types create/update --conversion-spec` or call the REST endpoint directly. See `../advanced/conversion-spec.md`.
 
 ## Environment Variables
 
