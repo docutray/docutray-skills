@@ -219,7 +219,7 @@ docutray types export factura --force -o factura.json
 
 **`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), `keepPropertyOrdering`, and `conversionSpec` (the export mapping, verbatim as stored, or `null`). Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
 
-`conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 14 columns`, `5 columns`, `(none)`, or `(present)` when the shape isn't summarizable. JSON output is never summarized. (Reading the field in JSON works on 0.3.x too — 0.4.0 adds the summary line and the write flags.)
+`conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 13 columns`, `13 columns`, `0 columns` (stored but empty), `(none)` (no spec), or `(present)` when the shape isn't summarizable. JSON output is never summarized. (Reading the field in JSON works on 0.3.x too — 0.4.0 adds the summary line and the write flags.)
 
 `types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
 

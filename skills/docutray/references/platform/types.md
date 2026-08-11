@@ -189,13 +189,14 @@ Flat object — no `data` envelope. Includes the full type definition:
 Non-`--json` output summarizes the conversion spec instead of dumping it — a 14-column spec would flood the key-value listing. Four forms:
 
 ```
-Export spec: 2 sheets, 14 columns     # multi-sheet ({"sheets": […]})
-Export spec: 5 columns                # single table ({"columns": […]})
+Export spec: 2 sheets, 13 columns     # multi-sheet ({"sheets": […]})
+Export spec: 13 columns               # single table ({"columns": […]})
+Export spec: 0 columns                # stored but empty ({"columns": []})
 Export spec: (none)                   # conversionSpec is null or absent
-Export spec: (present)                # a spec the CLI can't summarize (columns/sheets isn't an array)
+Export spec: (present)                # not summarizable — in practice, conversionSpec is {}
 ```
 
-`(present)` is a deliberate fallback — a cosmetic summary line never costs you the whole output. Treat "anything other than `(none)`" as "a spec is stored"; use `--json` when you need the real contents.
+`0 columns` and `(none)` are different states: the first is an empty spec that exports a column-less file, the second is no spec at all. `(present)` is a deliberate fallback — a cosmetic summary line never costs you the whole output. Treat "anything other than `(none)`" as "a spec is stored"; use `--json` when you need the real contents.
 
 `--json` (and piped) output is **never** summarized: `conversionSpec` travels verbatim as the API returned it, with no derived or computed fields.
 

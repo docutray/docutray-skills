@@ -103,6 +103,20 @@ Given this extraction schema:
 
 The scalar fields sit at the root (`$.folio`, `$.total`), and the repeating line items are reached through the array (`$.detalle[*].descripcion`). A natural mapping puts the scalars on a header sheet and the line items on their own sheet — the multi-sheet example above is exactly this schema's spec.
 
+**Repeat the identifying scalars on the detail sheet.** Real specs commonly lead each row sheet with a few root-level columns before the array projections, so every exported row carries its own context and stands alone when the sheet is filtered or pasted elsewhere:
+
+```json
+{
+  "name": "Transacciones",
+  "columns": [
+    { "header": "Banco Emisor", "jsonPath": "$.banco_emisor" },
+    { "header": "N° Cuenta",    "jsonPath": "$.n_cuenta" },
+    { "header": "Fecha",        "jsonPath": "$.transacciones[*].fecha" },
+    { "header": "Monto",        "jsonPath": "$.transacciones[*].monto" }
+  ]
+}
+```
+
 Common path forms:
 
 | Path | Selects |
@@ -183,13 +197,19 @@ No extra flags needed: `types export` output includes the spec, and `create --sc
 Human-readable output carries an **`Export spec`** summary line rather than dumping the whole spec (a 14-column spec would flood a key-value listing):
 
 ```
-Export spec: 2 sheets, 14 columns     # multi-sheet
-Export spec: 5 columns                # single-table
-Export spec: (none)                   # no spec stored
-Export spec: (present)                # stored, but not summarizable (columns/sheets isn't an array)
+Export spec: 2 sheets, 13 columns     # multi-sheet
+Export spec: 13 columns               # single-table
+Export spec: 0 columns                # stored but empty ({"columns": []})
+Export spec: (none)                   # conversionSpec is null or absent
+Export spec: (present)                # stored, but not summarizable
 ```
 
-`(present)` is a deliberate fallback: a cosmetic summary line must never cost the user the whole output, so an unrecognized shape degrades instead of throwing. When checking whether a spec stored, test for **not `(none)`** rather than matching one of the count forms.
+Two of these are easy to misread:
+
+- **`0 columns` is not `(none)`.** A spec of `{"columns": []}` is stored and exports a file with no columns; `(none)` means no spec at all. Many types carry an empty spec, so treat the two as different states.
+- **`(present)` is real, not hypothetical.** It appears whenever `columns`/`sheets` isn't an array — in practice, a `conversionSpec` of `{}`. It's a deliberate fallback: a cosmetic summary line must never cost the user the whole output, so an unrecognized shape degrades instead of throwing.
+
+When checking whether a spec stored, test for **not `(none)`** rather than matching one of the count forms.
 
 JSON output is unsummarized — `conversionSpec` travels verbatim, exactly as the API returned it, with no derived fields:
 
