@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **`types get` / `types export` response documentation now includes `conversionSpec`** — returned verbatim or `null`, and **absent from `types list` items**. The human-readable `Export spec` summary line and its three forms (`N sheets, M columns` / `M columns` / `(none)`) are documented in `SKILL.md` §4 and `references/platform/types.md`, along with the note that `--json` output is never summarized.
+- **`types get` / `types export` response documentation now includes `conversionSpec`** — returned verbatim or `null`, and **absent from `types list` items**. The human-readable `Export spec` summary line and all five of its forms (`N sheets, M columns` / `M columns` / `0 columns` / `(none)` / `(present)`) are documented in `SKILL.md` §4 and `references/platform/types.md`, along with the note that `--json` output is never summarized.
 - **Documented CLI floor raised to `@docutray/cli/0.4.0`** in the `SKILL.md` Technical Reference and on the files this change touches (`references/platform/types.md`, `references/advanced/custom-types-workflow.md` — the latter was stale at `0.2.1`). Files not re-verified by this change keep their existing markers rather than claiming a verification that did not happen.
 - The "pin org types in version control" pattern now names `conversionSpec` among what an export captures, so its recreate claim stays accurate.
 - `references/advanced/schema-design.md` closes with a pointer that the schema being designed is what a conversion spec's `jsonPath` selects from.
