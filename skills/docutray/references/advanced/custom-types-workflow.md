@@ -155,9 +155,13 @@ docutray convert sample-po.pdf -t acme-purchase-order
 >
 > ```bash
 > CODE=$(docutray types create --name "…" --code acme-purchase-order \
->   --description "…" --schema schema.json --json | jq -r '.codeType')
+>   --description "…" --schema schema.json --json | jq -r '.codeType' | head -1)
 > docutray convert sample-po.pdf -t "$CODE"
 > ```
+>
+> The `| head -1` is deliberate: `types create` output is **not reliably a single JSON object** — it has been observed emitting two, the second with `isDraft` and `status` nulled. Take the first and don't assume a lone document.
+
+> **A code that already exists fails with a bare `500`.** Re-running a create with a taken code returns `{"error":"Error processing request","status":500}` — no conflict status, and nothing naming the code as the cause. Before concluding the API is down, check whether the type already exists: `docutray types list --search <name>`.
 
 The agent reviews the output with the user and iterates the schema if needed.
 

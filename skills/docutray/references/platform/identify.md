@@ -2,8 +2,8 @@
 
 Identify the type of a document by analyzing its content, against a candidate set you provide. Returns the best-matching document type plus alternatives ranked by confidence.
 
-Verified against `@docutray/cli/0.3.2` and a real PDF. Run `docutray identify --help` to confirm flag spellings.
-SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
+Verified against `@docutray/cli/0.3.2` and a real PDF; the response shape below was re-confirmed on `0.4.0` against a live organization, and matches the raw REST response byte for byte. Run `docutray identify --help` to confirm flag spellings.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## Critical: `--types` is required in practice
 
@@ -149,10 +149,12 @@ Provide exactly one source: `file`, `url`, or `base64`. For async, `client.ident
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@document.pdf" \
-  -F "types=invoice,receipt,contract" \
+  -F "image=@document.pdf" \
+  -F 'document_type_code_options=["invoice","receipt","contract"]' \
   https://app.docutray.com/api/identify
 ```
+
+> Verified against the live API. The file part is **`image`** (a part named `file` is rejected with `Image file is required`), and the candidate list is **`document_type_code_options`** as a JSON-encoded array — `types` is the CLI flag spelling, not the wire field. The response has no `data` envelope; see the shape above.
 
 URL reference:
 

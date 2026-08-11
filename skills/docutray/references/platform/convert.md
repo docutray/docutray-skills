@@ -1,7 +1,7 @@
 # Convert — detailed reference
 
 Verified against `@docutray/cli/0.2.1`. Run `docutray convert --help` to confirm.
-SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## CLI usage
 
@@ -142,12 +142,14 @@ const current = await client.convert.getStatus(status.conversion_id);
 
 ## REST API
 
+> The multipart file part is named **`image`**, not `file` — confirmed from the SDKs and from the live `identify` endpoint's rejection of a `file` part. The `convert` endpoint itself was not separately re-run.
+
 ### Synchronous
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@invoice.pdf" \
+  -F "image=@invoice.pdf" \
   -F "document_type=electronic-invoice" \
   https://app.docutray.com/api/convert
 ```
@@ -182,7 +184,7 @@ Start the conversion and poll the status endpoint until `SUCCESS` or `ERROR`. Th
 # Start
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@large-document.pdf" \
+  -F "image=@large-document.pdf" \
   -F "document_type=electronic-invoice" \
   https://app.docutray.com/api/convert-async
 

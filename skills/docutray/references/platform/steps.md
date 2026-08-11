@@ -3,7 +3,7 @@
 Execute and monitor processing steps. Steps are reusable processing pipelines configured in the DocuTray dashboard; the CLI/SDK/REST surface lets you run a step on a document and poll its execution status.
 
 Verified against `@docutray/cli/0.2.1`. Run `docutray steps run --help` and `docutray steps status --help` to confirm.
-SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## CLI
 
@@ -187,17 +187,18 @@ Provide exactly one source: `file`, `url`, or `base64`. Optional: `contentType`,
 ## REST API
 
 ```bash
-# Run
+# Run — the step id goes in the PATH, not a form field
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "step_id=extract-fields" \
-  -F "file=@invoice.pdf" \
-  https://app.docutray.com/api/steps
+  -F "image=@invoice.pdf" \
+  https://app.docutray.com/api/steps-async/extract-fields
 
 # Status
 curl -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  https://app.docutray.com/api/steps/status/exec_abc123
+  https://app.docutray.com/api/steps-async/status/exec_abc123
 ```
+
+> **Not re-verified against the live API.** Paths and the `image` part name are taken from both SDKs, which agree (`/api/steps-async/{stepId}`, `/api/steps-async/status/{executionId}`). The previously documented `/api/steps` with a `step_id` form field does not appear anywhere in either SDK.
 
 URL reference:
 

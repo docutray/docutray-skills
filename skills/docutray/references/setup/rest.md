@@ -1,6 +1,10 @@
 # REST API setup — detailed reference
 
-DocuTray's REST API is what the CLI and SDKs talk to under the hood. The document-type list and get endpoints are verified against the live API (paths, `data` envelope, and full per-type payload). The `identify` and `status` shapes below are **not** re-verified — treat `references/platform/identify.md` as authoritative for identify, and hit the endpoint and inspect when in doubt.
+DocuTray's REST API is what the CLI and SDKs talk to under the hood.
+
+**Verification scope.** Checked against the live API: `GET /api/document-types` (path, `data` envelope, item fields), `GET /api/document-types/{id}` (id-not-code, envelope, full payload including `conversionSpec`), and `POST /api/identify` (`image` part, required candidate list, envelope-free response shape). **Not re-verified:** `POST /api/convert`, the `steps` endpoints, and `GET /api/status` — their shapes below are inherited from earlier documentation; hit the endpoint and inspect before relying on them.
+
+**Envelopes are not uniform.** Document-type reads wrap the object in `data`; `identify` returns its fields at the top level. Don't generalize one endpoint's envelope to another.
 
 ## Base URL
 
@@ -108,15 +112,17 @@ Content-Type: multipart/form-data
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `file` | binary | Yes | Document file (JPEG, PNG, GIF, BMP, WebP, PDF) |
-| `document_type` | string | Yes | Name of the document type to extract |
+| `image` | binary | Yes | Document file (JPEG, PNG, GIF, BMP, WebP, PDF) |
+| `document_type` | string | Yes | Code of the document type to extract with |
+
+> **The file part is named `image`, not `file`.** Confirmed from the live `identify` endpoint's rejection of a `file` part and from the SDKs, which upload every document under the same `image` field. The `convert` endpoint itself was **not** separately re-run — if a request fails validation here, check the part name first.
 
 **Example:**
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@invoice.pdf" \
+  -F "image=@invoice.pdf" \
   -F "document_type=invoice" \
   https://app.docutray.com/api/convert
 ```
@@ -148,32 +154,41 @@ Content-Type: multipart/form-data
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `file` | binary | Yes | Document file to identify |
+| `image` | binary | Yes | Document file to identify (JPEG, PNG, GIF, BMP, WebP, PDF) |
+| `document_type_code_options` | string | Yes in practice | JSON-encoded array of candidate `codeType` values, e.g. `["factura","oc"]` |
+
+> **The file part is named `image`, not `file`** — even for PDFs. A part named `file` is rejected with `{"message":"Validation error","errors":["Image file is required"]}`.
+>
+> **A candidate list is required in practice**, mirroring the CLI's `--types`: without `document_type_code_options` the API returns a validation error.
 
 **Example:**
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  -F "file=@document.pdf" \
+  -F "image=@document.pdf" \
+  -F 'document_type_code_options=["factura","boleta_honorarios","oc"]' \
   https://app.docutray.com/api/identify
 ```
 
-**Response:**
-
-> **This example is unverified and contradicts the verified CLI shape.** `references/platform/identify.md`, checked against a real document, shows **no** `data` wrapper and `document_type` as an *object* (`{code, name, confidence}`) rather than a string, with `alternatives` entries carrying `code`/`name`/`confidence`. Trust that shape; the block below is retained only as a rough sketch pending a REST re-verification. Note also that the API rejects identify requests without a candidate type list.
+**Response** — verified against the live API. **No `data` envelope**, and `document_type` is an *object*, not a string:
 
 ```json
 {
-  "data": {
-    "document_type": "electronic-invoice",
-    "confidence": 0.95,
-    "alternatives": [
-      { "document_type": "receipt", "confidence": 0.04 }
-    ]
-  }
+  "document_type": {
+    "code": "factura",
+    "name": "Factura Electrónica",
+    "confidence": 1
+  },
+  "alternatives": [
+    { "code": "oc", "name": "Orden de Compra", "confidence": 0.05 },
+    { "code": "boleta_honorarios", "name": "Boleta de Honorarios", "confidence": 0.01 },
+    { "code": "otro", "name": "Otro/No identificado", "confidence": 0.01 }
+  ]
 }
 ```
+
+This is byte-for-byte the shape `docutray identify --json` prints — unlike the document-type endpoints, `identify` has no envelope for the CLI to unwrap. See `../platform/identify.md`.
 
 ### Check status
 

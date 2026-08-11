@@ -1,6 +1,6 @@
 # Python SDK Setup — Detailed Reference
 
-Verified against the `docutray` Python SDK **0.2.1** source.
+Verified against the `docutray` Python SDK **0.2.1**, installed from PyPI. Snippets are verified by **installing the package and probing the documented call paths**, not by reading the SDK source or its README (the README is known to disagree with the source on `steps.runAsync`).
 
 ## Installation
 

@@ -3,7 +3,7 @@
 Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
 
 Verified against `@docutray/cli/0.3.2` and a real org listing; `conversionSpec` coverage documented from `@docutray/cli/0.4.0`. Run `docutray types <subcommand> --help` to confirm.
-SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
+SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## Subcommands
 

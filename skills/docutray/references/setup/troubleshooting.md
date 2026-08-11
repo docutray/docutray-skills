@@ -30,6 +30,7 @@ Authentication, connectivity, and environment issues across all integration path
 |---|---|---|
 | Export spec doesn't stick — `types get <code>` shows `Export spec: (none)` right after a successful `types create`/`types update --conversion-spec` | The API deployment predates `conversionSpec` support on document types: the field is accepted and silently discarded, with no error and no way for the CLI to detect it | Confirm with `docutray types get <code>` after every write. If it stays `(none)`, the deployment needs updating — nothing on the client side will change the result. |
 | `Document type "<code>" not found` immediately after `types create` succeeded | Org-owned types are namespaced by the API: `--code invoice` in an org named *Acme* is stored as `acme_invoice`. Public catalog types are not prefixed. | Capture the real code from the create response (`--json | jq -r .codeType`) and use it for `convert -t` / `types get`. |
+| `{"error":"Error processing request","status":500}` from `types create` | The `--code` is already taken. The API returns a bare 500 rather than a conflict status, and does not name the code as the cause. | Check first with `docutray types list --search <name>`. Remember the stored code carries the org prefix, so search by name, not by the code you passed. |
 | `--conversion-spec` and `--no-conversion-spec` rejected together | The two flags are mutually exclusive by design | Pass exactly one: `--conversion-spec <file\|json>` to set or replace, `--no-conversion-spec` to clear. |
 | Export spec unchanged after `types update --schema export.json` | Unlike `types create`, `update --schema` deliberately ignores a `conversionSpec` embedded in a `types export` payload — an update only touches the fields you name | Pass the spec explicitly: `docutray types update <code> --conversion-spec export.json`. |
 | `--conversion-spec` fails before any API call | The value is neither an existing file path nor valid JSON, or it parses to an array/scalar/object without `columns` or `sheets` | Check the path, and confirm the JSON is an object shaped `{"columns":[…]}` or `{"sheets":[…]}`. The CLI validates only that shape; everything else is validated by the API. |
@@ -60,7 +61,8 @@ Authentication, connectivity, and environment issues across all integration path
 
 ## REST-specific
 
-- **`415 Unsupported Format`** with a PDF file. Confirm the multipart upload uses the correct mime type: `Content-Type: multipart/form-data` with the file part typed as `application/pdf` (or let curl set it via `-F "file=@invoice.pdf"`).
+- **`{"message":"Validation error","errors":["Image file is required"]}`** on a multipart upload. The file part is named **`image`**, not `file` — for every document type including PDFs. Use `-F "image=@invoice.pdf"`.
+- **`415 Unsupported Format`** with a PDF file. Confirm the multipart upload uses the correct mime type: `Content-Type: multipart/form-data` with the file part typed as `application/pdf` (or let curl set it via `-F "image=@invoice.pdf"`).
 - **Empty `data`** on convert. The document type code is wrong or unpublished. Verify with `GET /api/document-types/{id}` first.
 
 ## Verification commands

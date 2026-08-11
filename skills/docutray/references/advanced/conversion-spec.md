@@ -4,7 +4,7 @@ A document type can carry a **conversion spec**: the mapping from the JSON that 
 
 The two are independent — a type can have a schema and no spec (it just doesn't export to a fixed sheet layout), and changing one does not change the other.
 
-Documented from the `@docutray/cli/0.4.0` help output and [docutray-cli#36](https://github.com/docutray/docutray-cli/pull/36) (SDK `docutray@0.1.5`). Run `docutray types create --help` and `docutray types update --help` to confirm flag spellings against your installed version. The behavior here has not been re-verified against a live organization — treat `--help` and a post-write `docutray types get` as the ground truth.
+Documented from the `@docutray/cli/0.4.0` help output and [docutray-cli#36](https://github.com/docutray/docutray-cli/pull/36) (SDK `docutray@0.1.5`), then **verified end-to-end against a live organization**: the export → create round-trip, the `update` clear, the `--schema` carry-over asymmetry, the explicit-flag precedence, and all five `Export spec` forms. Run `docutray types create --help` / `types update --help` to confirm flag spellings against your installed version, and treat a post-write `docutray types get` as the ground truth for whether a spec actually stored.
 
 ## The two shapes
 
@@ -179,7 +179,7 @@ This is the one behavior worth memorizing, because the two commands deliberately
 - **`types create --schema <full export payload>` carries the embedded `conversionSpec` over.** Creating a type builds it from scratch, so reproducing the whole exported definition is what you want. This completes the round-trip below.
 - **`types update --schema <full export payload>` ignores the embedded `conversionSpec`.** An update is partial by contract — it must not modify a field the user never named. Use `--conversion-spec` to change the mapping.
 
-An explicit `--conversion-spec` always **takes precedence** over a spec embedded in `--schema`.
+An explicit `--conversion-spec` always **takes precedence** over a spec embedded in `--schema` — verified against the live API: passing a full export payload (2 sheets, 13 columns) to `--schema` together with a one-column `--conversion-spec` stores the one-column spec, while `jsonSchema` still comes from `--schema`. The two flags resolve independently in the same call.
 
 ### Round-trip: export → create
 
@@ -207,6 +207,7 @@ Export spec: (present)                # stored, but not summarizable
 Two of these are easy to misread:
 
 - **`0 columns` is not `(none)`.** A spec of `{"columns": []}` is stored and exports a file with no columns; `(none)` means no spec at all. Many types carry an empty spec, so treat the two as different states.
+- **The noun is pluralized by count.** A single-column spec reads `1 column`, not `1 columns` — don't match on a fixed `columns` suffix.
 - **`(present)` is real, not hypothetical.** It appears whenever `columns`/`sheets` isn't an array — in practice, a `conversionSpec` of `{}`. It's a deliberate fallback: a cosmetic summary line must never cost the user the whole output, so an unrecognized shape degrades instead of throwing.
 
 When checking whether a spec stored, test for **not `(none)`** rather than matching one of the count forms.

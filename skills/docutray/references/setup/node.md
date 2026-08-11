@@ -1,6 +1,6 @@
 # Node SDK Setup — Detailed Reference
 
-Verified against the `docutray` Node SDK **0.1.5** source.
+Verified against the `docutray` Node SDK **0.1.5**, installed from npm. Snippets are verified by **installing the package and probing the documented call paths**, not by reading the SDK source or its README (the README is known to disagree with the source on `steps.runAsync`).
 
 ## Installation
 
