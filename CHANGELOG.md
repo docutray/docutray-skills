@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_No changes yet._
+### Fixed
+
+- **Every SDK snippet in the skill was wrong and is now verified against the SDK sources** (`docutray` Node **0.1.5**, Python **0.2.1**). A code review of the conversion-spec work surfaced one bad call site; checking the rest found the same class of error throughout — an agent following any SDK example would have hit `TypeError` / `undefined is not a function` rather than a working call. Corrections:
+  - **Resources are namespaced.** `client.convert(...)` → `client.convert.run(...)`, `client.identify(...)` → `client.identify.run(...)`, `client.steps.run(...)` → `client.steps.run_async()` / `runAsync()`, `client.steps.status()` → `get_status()` / `getStatus()`.
+  - **Document types live on `documentTypes` / `document_types`**, never `client.types`. `get()` takes the internal **id**, not the `codeType` — the CLI resolves code→id, the SDKs do not; a lookup pattern is now documented.
+  - **Neither SDK has `export()`.** The surface is `list`, `get`, `create`, `update`, `validate`. Use the CLI's `types export`.
+  - **`list()` returns a `Page`**, not a bare array/list — items are on `.data` (plus `hasNextPage()`/`autoPagingIter()` in Node, `iter_pages()`/`auto_paging_iter()` in Python).
+  - **Parameter names**: `document_type` → `document_type_code` / `documentTypeCode`; `file_path` / `filePath` → `file` (or `url` / `base64`); `types` → `document_type_code_options` / `documentTypeCodeOptions` (the `--types` spelling is CLI-only); `no_wait` / `noWait` do not exist.
+  - **Type and import names**: `ConvertResult` and `DocumentTypeSchema` don't exist (`ConversionResult` / `ConversionStatus` do); exceptions come from `docutray`, not `docutray.exceptions`.
+  - **Python keeps the API's camelCase field names** (`codeType`, `jsonSchema`, `isDraft`) rather than converting to snake_case — the previous note claiming the opposite was wrong.
+- **Corrected the `identify` → `convert` chaining examples** in `references/platform/convert.md`, which used `jq -r '.data.document_type'` against a response that has no `data` wrapper and whose `document_type` is an object. Now `jq -r '.document_type.code'`, with the required `--types` flag included.
 
 ## [1.2.0] - 2026-08-11
 

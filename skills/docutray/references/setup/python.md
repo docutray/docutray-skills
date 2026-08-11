@@ -1,5 +1,7 @@
 # Python SDK Setup — Detailed Reference
 
+Verified against the `docutray` Python SDK **0.2.1** source.
+
 ## Installation
 
 ```bash
@@ -50,12 +52,12 @@ async def main():
     client = AsyncClient()
 
     # All methods are async
-    types = await client.types.list()
-    result = await client.convert(
-        file_path="invoice.pdf",
-        document_type="invoice",
+    page = await client.document_types.list()
+    result = await client.convert.run(
+        file=Path("invoice.pdf"),
+        document_type_code="invoice",
     )
-    print(result)
+    print(result.data)
 ```
 
 ## Authentication Priority
@@ -76,17 +78,21 @@ client = Client()
 
 # List document types to verify auth
 try:
-    types = client.types.list()
-    print(f"Authenticated. {len(types)} document types available.")
+    page = client.document_types.list()
+    print(f"Authenticated. {len(page.data)} document types on this page.")
 except Exception as e:
     print(f"Authentication failed: {e}")
 ```
 
+> **Resources are namespaced.** Calls go through `client.convert.run()`, `client.identify.run()`, `client.document_types.list()`, `client.steps.run_async()` — not `client.convert(...)` or `client.types(...)`. `list()` returns a `Page` (iterable, with `.data`, `.iter_pages()`, `.auto_paging_iter()`), not a bare list.
+
 ## Error Handling
 
 ```python
-from docutray import Client
-from docutray.exceptions import (
+from pathlib import Path
+
+from docutray import (
+    Client,
     AuthenticationError,
     NotFoundError,
     RateLimitError,
@@ -96,7 +102,7 @@ from docutray.exceptions import (
 client = Client()
 
 try:
-    result = client.convert(file_path="doc.pdf", document_type="invoice")
+    result = client.convert.run(file=Path("doc.pdf"), document_type_code="invoice")
 except AuthenticationError:
     # 401 — invalid or missing API key
     print("Check your DOCUTRAY_API_KEY")
@@ -116,38 +122,55 @@ except APIError as e:
 ### Convert a Document
 
 ```python
-result = client.convert(
-    file_path="invoice.pdf",
-    document_type="invoice",
+from pathlib import Path
+
+result = client.convert.run(
+    file=Path("invoice.pdf"),
+    document_type_code="invoice",
 )
 print(result.data)
 ```
 
-### Convert with File Bytes
+Provide exactly one source: `file`, `url`, or `file_base64`. Optional: `content_type`, `document_metadata`.
+
+### Convert Asynchronously
+
+`run_async()` returns immediately with a status object carrying a `wait()` method that polls to completion:
 
 ```python
-with open("invoice.pdf", "rb") as f:
-    result = client.convert(
-        file=f.read(),
-        file_name="invoice.pdf",
-        document_type="invoice",
-    )
+status = client.convert.run_async(
+    url="https://example.com/invoice.pdf",
+    document_type_code="invoice",
+)
+result = status.wait(on_status=lambda s: print(s.status))
+print(result.data)
+
+# Or poll manually
+current = client.convert.get_status(status.conversion_id)
 ```
 
 ### List Available Document Types
 
 ```python
-types = client.types.list()
-for t in types:
-    print(f"{t.name}: {t.description}")
+page = client.document_types.list()
+for t in page.data:
+    print(f"{t.codeType}: {t.name}")
+
+# Search, or walk every item across pages
+page = client.document_types.list(search="invoice")
+for t in client.document_types.list().auto_paging_iter():
+    print(t.codeType)
 ```
 
 ### Get a Specific Document Type
 
 ```python
-doc_type = client.types.get("invoice")
-print(doc_type.schema)
+# get() takes the internal id, not the code_type — look it up via list()
+doc_type = client.document_types.get(doc_type_id)
+print(doc_type.jsonSchema)
 ```
+
+`document_types` also exposes `create(...)`, `update(...)`, and `validate(...)`. There is **no** `export()` method — use the CLI's `docutray types export` for that.
 
 A document type also carries `conversionSpec` — the JSON → CSV/Excel column mapping used by tray export.
 

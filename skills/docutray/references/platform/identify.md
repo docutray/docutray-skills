@@ -3,6 +3,7 @@
 Identify the type of a document by analyzing its content, against a candidate set you provide. Returns the best-matching document type plus alternatives ranked by confidence.
 
 Verified against `@docutray/cli/0.3.2` and a real PDF. Run `docutray identify --help` to confirm flag spellings.
+SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
 
 ## Critical: `--types` is required in practice
 
@@ -105,36 +106,43 @@ Read `.document_type.confidence`:
 ## Python SDK
 
 ```python
+from pathlib import Path
+
 from docutray import Client
 
 client = Client()
-result = client.identify(
-    file_path="document.pdf",
-    types=["invoice", "receipt", "contract"],   # required
+result = client.identify.run(
+    file=Path("document.pdf"),
+    document_type_code_options=["invoice", "receipt", "contract"],   # required in practice
 )
-# result.data fields are at the top level (no `.data` wrapper on the dict either)
-print(result.document_type.code, result.document_type.confidence)
+# IdentificationResult — no `.data` wrapper
+print(result.document_type.code, result.document_type.name, result.document_type.confidence)
 for alt in result.alternatives:
-    print(alt.code, alt.confidence)
+    print(alt.code, alt.name, alt.confidence)
 ```
 
-(Verify SDK attribute names against the SDK source — the CLI returns the JSON shape shown above; SDK property names may differ slightly e.g. `documentType` in JS or `document_type` in Python.)
+Provide exactly one source: `file`, `url`, or `file_base64`. For async, `client.identify.run_async(...)` returns a status with `.wait()`, and `client.identify.get_status(identification_id)` polls manually.
 
 ## Node SDK
 
 ```typescript
 import { DocuTray } from "docutray";
+import { readFileSync } from "node:fs";
 
 const client = new DocuTray();
-const r = await client.identify({
-  filePath: "document.pdf",
-  types: ["invoice", "receipt", "contract"],   // required
+const r = await client.identify.run({
+  file: readFileSync("document.pdf"),
+  documentTypeCodeOptions: ["invoice", "receipt", "contract"],   // required in practice
 });
-console.log(r.documentType.code, r.documentType.confidence);
+console.log(r.documentType.code, r.documentType.name, r.documentType.confidence);
 for (const alt of r.alternatives) {
-  console.log(alt.code, alt.confidence);
+  console.log(alt.code, alt.name, alt.confidence);
 }
 ```
+
+Provide exactly one source: `file`, `url`, or `base64`. For async, `client.identify.runAsync(...)` returns a status with `.wait()`, and `client.identify.getStatus(id)` polls manually.
+
+> **The SDK argument is `documentTypeCodeOptions` / `document_type_code_options`**, not `types` — that spelling is the CLI flag (`--types`).
 
 ## REST API
 

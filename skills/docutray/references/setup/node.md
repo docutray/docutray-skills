@@ -1,5 +1,7 @@
 # Node SDK Setup — Detailed Reference
 
+Verified against the `docutray` Node SDK **0.1.5** source.
+
 ## Installation
 
 ```bash
@@ -56,23 +58,26 @@ import { DocuTray } from "docutray";
 const client = new DocuTray();
 
 try {
-  const types = await client.types.list();
-  console.log(`Authenticated. ${types.length} document types available.`);
+  const page = await client.documentTypes.list();
+  console.log(`Authenticated. ${page.data.length} document types on this page.`);
 } catch (error) {
   console.error("Authentication failed:", error);
 }
 ```
+
+> **Resources are namespaced.** Calls go through `client.convert.run()`, `client.identify.run()`, `client.documentTypes.list()`, `client.steps.runAsync()` — not `client.convert(...)` or `client.types(...)`. `list()` returns a `Page` with a `.data` array (plus `hasNextPage()`, `iterPages()`, `autoPagingIter()`), not a bare array.
 
 ## TypeScript Types
 
 The SDK provides full TypeScript type definitions:
 
 ```typescript
+import { readFileSync } from "node:fs";
 import {
   DocuTray,
-  ConvertResult,
+  Page,
+  ConversionStatus,
   DocumentType,
-  DocumentTypeSchema,
   // Export-mapping types (docutray@0.1.5+)
   ConversionSpec,
   ConversionSpecColumn,
@@ -85,11 +90,12 @@ import {
 const client = new DocuTray();
 
 // Fully typed responses
-const types: DocumentType[] = await client.types.list();
-const result: ConvertResult = await client.convert({
-  filePath: "invoice.pdf",
-  documentType: "invoice",
+const page: Page<DocumentType> = await client.documentTypes.list();
+const result: ConversionStatus = await client.convert.run({
+  file: readFileSync("invoice.pdf"),
+  documentTypeCode: "invoice",
 });
+console.log(result.data);   // extracted fields, or null on failure
 ```
 
 ## Error Handling
@@ -106,9 +112,9 @@ import {
 const client = new DocuTray();
 
 try {
-  const result = await client.convert({
-    filePath: "doc.pdf",
-    documentType: "invoice",
+  const result = await client.convert.run({
+    file: readFileSync("doc.pdf"),
+    documentTypeCode: "invoice",
   });
 } catch (error) {
   if (error instanceof AuthenticationError) {
@@ -132,41 +138,57 @@ try {
 ### Convert a Document
 
 ```typescript
-const result = await client.convert({
-  filePath: "invoice.pdf",
-  documentType: "invoice",
+import { readFileSync } from "node:fs";
+
+const result = await client.convert.run({
+  file: readFileSync("invoice.pdf"),
+  documentTypeCode: "invoice",
 });
 console.log(result.data);
 ```
 
-### Convert with Buffer
+Provide exactly one source: `file`, `url`, or `base64`. Optional: `contentType`, `filename`, `documentMetadata`, `webhookUrl`.
+
+### Convert Asynchronously
+
+`runAsync()` returns immediately with a status object carrying a `wait()` method that polls to completion:
 
 ```typescript
-import { readFileSync } from "fs";
-
-const buffer = readFileSync("invoice.pdf");
-const result = await client.convert({
-  file: buffer,
-  fileName: "invoice.pdf",
-  documentType: "invoice",
+const status = await client.convert.runAsync({
+  url: "https://example.com/invoice.pdf",
+  documentTypeCode: "invoice",
 });
+const result = await status.wait({ onStatus: (s) => console.log(s.status) });
+console.log(result.data);
+
+// Or poll manually
+const current = await client.convert.getStatus(status.conversion_id);
 ```
 
 ### List Available Document Types
 
 ```typescript
-const types = await client.types.list();
-for (const t of types) {
-  console.log(`${t.name}: ${t.description}`);
+const page = await client.documentTypes.list();          // { data, hasNextPage(), … }
+for (const t of page.data) {
+  console.log(`${t.codeType}: ${t.name}`);
+}
+
+// Search, or walk every page
+const filtered = await client.documentTypes.list({ search: "invoice" });
+for await (const t of client.documentTypes.list().autoPagingIter()) {
+  console.log(t.codeType);
 }
 ```
 
 ### Get a Specific Document Type
 
 ```typescript
-const docType = await client.types.get("invoice");
-console.log(docType.schema);
+// get() takes the internal `id`, not the `codeType` — look it up via list()
+const docType = await client.documentTypes.get(docTypeId);
+console.log(docType.jsonSchema);
 ```
+
+`documentTypes` also exposes `create(params)`, `update(id, params)`, and `validate(id, data)`. There is **no** `export()` method — use the CLI's `docutray types export` for that.
 
 ### Read a Document Type's Export Spec
 

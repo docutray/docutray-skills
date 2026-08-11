@@ -3,6 +3,7 @@
 Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
 
 Verified against `@docutray/cli/0.3.2` and a real org listing; `conversionSpec` coverage documented from `@docutray/cli/0.4.0`. Run `docutray types <subcommand> --help` to confirm.
+SDK snippets are verified against the `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** sources.
 
 ## Subcommands
 
@@ -246,20 +247,19 @@ from docutray import Client
 
 client = Client()
 
-# List
-result = client.types.list()
-for t in result.data:
-    print(f"{t.code_type}: {t.name}")    # property name in SDK may be code_type or codeType
+# List — returns a Page; items are on .data
+page = client.document_types.list()
+for t in page.data:
+    print(f"{t.codeType}: {t.name}")
 
-# Get
-result = client.types.get("factura")
-print(result.data.name, result.data.status)
+page = client.document_types.list(search="factura")
 
-# Export (same shape as get today)
-result = client.types.export("factura")
+# Get — takes the internal id, NOT the codeType, and returns the type directly
+doc_type = client.document_types.get(doc_type_id)
+print(doc_type.name, doc_type.status, doc_type.jsonSchema)
 ```
 
-(SDK property casing may differ — verify against the SDK source. The CLI returns the JSON shape shown above; SDKs typically convert `codeType` → `code_type` in Python and keep `codeType` in JS.)
+The Python model keeps the API's camelCase field names (`codeType`, `isDraft`, `jsonSchema`) rather than converting to snake_case; only method and argument names are snake_case. `DocumentType` allows extra fields, so keys the SDK doesn't declare (such as `conversionSpec`) are reachable via `doc_type.model_extra`.
 
 ### Node
 
@@ -268,16 +268,23 @@ import { DocuTray } from "docutray";
 
 const client = new DocuTray();
 
-// List
-const list = await client.types.list();
-for (const t of list.data) console.log(`${t.codeType}: ${t.name}`);
+// List — returns a Page; items are on .data
+const page = await client.documentTypes.list();
+for (const t of page.data) console.log(`${t.codeType}: ${t.name}`);
 
-// Get
-const got = await client.types.get("factura");
-console.log(got.data.name, got.data.status);
+// Get — takes the internal id, NOT the codeType, and returns the type directly
+const docType = await client.documentTypes.get(docTypeId);
+console.log(docType.name, docType.status, docType.jsonSchema);
+```
 
-// Export (same shape as get today)
-const exported = await client.types.export("factura");
+**Neither SDK has an `export()` method** — `list`, `get`, `create`, `update`, and `validate` are the whole surface. To produce an export payload, use the CLI (`docutray types export <code>`); `get` returns the same object.
+
+**Resolving a code to an id.** The CLI accepts a `codeType` everywhere and resolves it internally; the SDKs do not. Look the id up first:
+
+```typescript
+const page = await client.documentTypes.list({ search: "factura" });
+const match = page.data.find((t) => t.codeType === "factura");
+const docType = await client.documentTypes.get(match.id);
 ```
 
 ## REST API equivalents
