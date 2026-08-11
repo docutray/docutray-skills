@@ -261,7 +261,7 @@ When no existing type fits, design a new document type. The high-level flow:
 3. **Get and read an example first.** Always ask for an example document and read it with your own file/vision tool (Read/vision — most agents open PDFs and images directly) before generating a schema. Then **propose** the fields you detected and let the user adjust — don't make them enumerate fields blind. No sample? Warn the schema is tentative (validate against a real document later) and fall back to gathering fields by description; don't block.
 4. **Gather the rest progressively.** Don't dump every question at once: name/code → confirm detected fields → additional fields & tabular data → prompt hints → review → execute.
 5. **Create or update.** Use `docutray types create` (full flag set) or `docutray types update <code>`. Both accept `--schema` (file path or inline JSON), `--name`, `--description`, `--prompt-hints`, `--identify-hints`, `--conversion-mode {json|toon|multi_prompt}`, `--conversion-spec`, `--keep-ordering`, `--publish`/`--draft`. `create` additionally requires `--code`; `update` additionally accepts `--no-conversion-spec`.
-6. **Test.** Run `docutray convert <sample> -t <code>` and iterate.
+6. **Test.** Capture the real code from the create response — the API prefixes org-owned types (`--code invoice` in org *Acme* is stored as `acme_invoice`, and the bare code 404s). Run `docutray convert <sample> -t "$(… --json | jq -r .codeType)"` and iterate.
 
 ```bash
 docutray types create \
@@ -346,7 +346,8 @@ docutray convert invoice.pdf -t electronic-invoice
 | `Error: Nonexistent flag: --output` (or `--format`) on `convert` | Flag does not exist | Use shell redirection `> result.json` |
 | `401 Unauthorized` | Missing or invalid key | Verify with `docutray status`; re-export `DOCUTRAY_API_KEY` |
 | `403 Forbidden` | Key lacks permissions | Issue a new key in the dashboard |
-| `404 Not Found` on convert/get | Document type code wrong | `docutray types list --search <term>` |
+| `404 Not Found` on convert/get | Document type code wrong |`docutray types list --search <term>` |
+| `Document type "<code>" not found` right after creating it | The API prefixes org-owned types, so the code you passed to `--code` is not the stored `codeType` | Read `.codeType` from the `types create --json` response (or `types list --search`) and use that |
 | `415 Unsupported Format` | File type not supported | Convert to JPEG/PNG/PDF/etc. |
 | `413 File Too Large` | > 100MB | Split or compress |
 | `429 Rate Limited` | Throttled | Honor `Retry-After` |

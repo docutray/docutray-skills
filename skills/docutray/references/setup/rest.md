@@ -1,6 +1,6 @@
 # REST API setup — detailed reference
 
-DocuTray's REST API is what the CLI and SDKs talk to under the hood. The convert response shape below is verified against the live API; other endpoint responses (types list/get, identify, status) include a top-level `data` envelope but their internal shape may evolve — when in doubt, hit the endpoint and inspect.
+DocuTray's REST API is what the CLI and SDKs talk to under the hood. The document-type list and get endpoints are verified against the live API (paths, `data` envelope, and full per-type payload). The `identify` and `status` shapes below are **not** re-verified — treat `references/platform/identify.md` as authoritative for identify, and hit the endpoint and inspect when in doubt.
 
 ## Base URL
 
@@ -21,7 +21,7 @@ Authorization: Bearer dt_live_your_key_here
 
 ```bash
 curl -s -H "Authorization: Bearer $DOCUTRAY_API_KEY" \
-  https://app.docutray.com/api/types
+  https://app.docutray.com/api/document-types
 ```
 
 A `200` response with JSON data confirms authentication.
@@ -64,10 +64,12 @@ The identifier field is `codeType` (not `code`). Use it as `--types <codeType>` 
 ### Get document type
 
 ```
-GET /api/document-types/{codeType}
+GET /api/document-types/{id}
 ```
 
-**Response:**
+> **This endpoint takes the internal `id`, not the `codeType`.** Passing a code returns `404` — verified against the live API. The CLI accepts a code because it resolves code→id for you; over REST, get the `id` from the list endpoint first.
+
+**Response** — the full type definition, wrapped in a `data` envelope:
 
 ```json
 {
@@ -79,15 +81,21 @@ GET /api/document-types/{codeType}
     "isPublic": true,
     "isDraft": false,
     "status": "PUBLISHED",
+    "jsonSchema": { "type": "object", "properties": { "…": {} } },
+    "promptHints": "…",
+    "identifyPromptHints": "",
+    "conversionMode": "json",
+    "keepPropertyOrdering": false,
+    "conversionSpec": { "sheets": [ { "name": "…", "columns": [] } ] },
     "createdAt": "2025-06-19T16:35:43.856Z",
     "updatedAt": "2025-08-19T13:50:37.744Z"
   }
 }
 ```
 
-In `@docutray/cli/0.3.2+`, `docutray types get` and `docutray types export` return the full type definition — including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` — as a flat object (no `data` envelope). Use the CLI for parity. The exact REST per-type endpoint shape is not re-verified here; treat the CLI as authoritative.
+**Envelope differs from the CLI.** REST wraps the type in `data`; `docutray types get` / `types export` unwrap it and print the same object **flat**. So it's `jq .data.jsonSchema` over REST but `jq .jsonSchema` via the CLI.
 
-`conversionSpec` (the JSON → CSV/Excel export mapping) is carried on `GET`, `POST`, and `PUT` of `/api/document-types` — sent in the request body on create and update, returned on the single-type endpoints, and **absent from the list endpoint**. It requires an API deployment that supports the field; an older deployment accepts and silently discards it. See `../advanced/conversion-spec.md`.
+`conversionSpec` (the JSON → CSV/Excel export mapping) is carried on `GET`, `POST`, and `PUT` of `/api/document-types` — sent in the request body on create and update, returned inside `data` on the single-type endpoint, and **absent from the list endpoint**. It requires an API deployment that supports the field; an older deployment accepts and silently discards it. See `../advanced/conversion-spec.md`.
 
 ### Convert Document
 
@@ -152,6 +160,8 @@ curl -X POST \
 ```
 
 **Response:**
+
+> **This example is unverified and contradicts the verified CLI shape.** `references/platform/identify.md`, checked against a real document, shows **no** `data` wrapper and `document_type` as an *object* (`{code, name, confidence}`) rather than a string, with `alternatives` entries carrying `code`/`name`/`confidence`. Trust that shape; the block below is retained only as a rough sketch pending a REST re-verification. Note also that the API rejects identify requests without a candidate type list.
 
 ```json
 {
@@ -224,7 +234,7 @@ JPEG, PNG, GIF, BMP, WebP, PDF — max 100MB per file.
 ### Go
 
 ```go
-req, _ := http.NewRequest("GET", "https://app.docutray.com/api/types", nil)
+req, _ := http.NewRequest("GET", "https://app.docutray.com/api/document-types", nil)
 req.Header.Set("Authorization", "Bearer "+os.Getenv("DOCUTRAY_API_KEY"))
 resp, err := http.DefaultClient.Do(req)
 ```
@@ -235,7 +245,7 @@ resp, err := http.DefaultClient.Do(req)
 require "net/http"
 require "json"
 
-uri = URI("https://app.docutray.com/api/types")
+uri = URI("https://app.docutray.com/api/document-types")
 req = Net::HTTP::Get.new(uri)
 req["Authorization"] = "Bearer #{ENV['DOCUTRAY_API_KEY']}"
 res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
@@ -245,7 +255,7 @@ data = JSON.parse(res.body)
 ### PHP
 
 ```php
-$ch = curl_init("https://app.docutray.com/api/types");
+$ch = curl_init("https://app.docutray.com/api/document-types");
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Authorization: Bearer " . getenv("DOCUTRAY_API_KEY"),
 ]);

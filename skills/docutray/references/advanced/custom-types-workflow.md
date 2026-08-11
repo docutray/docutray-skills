@@ -149,6 +149,16 @@ docutray types create \
 docutray convert sample-po.pdf -t acme-purchase-order
 ```
 
+> **The code you pass is not always the code you get.** For org-owned types the API namespaces `--code` with an organization prefix — passing `--code acme-purchase-order` in an org named *Acme* yields a stored `codeType` like `acme_acme-purchase-order`, and the un-prefixed code does **not** resolve (`Document type "acme-purchase-order" not found`). Public catalog types (`factura`, `bl`, …) carry no prefix.
+>
+> **Always take the real code from the create response** instead of reusing what you passed:
+>
+> ```bash
+> CODE=$(docutray types create --name "…" --code acme-purchase-order \
+>   --description "…" --schema schema.json --json | jq -r '.codeType')
+> docutray convert sample-po.pdf -t "$CODE"
+> ```
+
 The agent reviews the output with the user and iterates the schema if needed.
 
 ## `types create` — full flag reference
@@ -157,7 +167,7 @@ From `docutray types create --help` (`@docutray/cli/0.4.0`).
 
 | Flag | Required | Description |
 |---|---|---|
-| `--code=<value>` | yes | Unique code (lowercase, numbers, underscores or hyphens) |
+| `--code=<value>` | yes | Requested code (lowercase, numbers, underscores or hyphens). **Org-owned types get an organization prefix** — read the real `codeType` from the response |
 | `--description=<value>` | yes | One-sentence description |
 | `--name=<value>` | yes | Human-readable name |
 | `--schema=<value>` | yes | JSON Schema as a file path **or** inline JSON string. Given a full `types export` payload, its embedded `conversionSpec` is carried over too |
