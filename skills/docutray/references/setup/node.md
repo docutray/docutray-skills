@@ -73,6 +73,13 @@ import {
   ConvertResult,
   DocumentType,
   DocumentTypeSchema,
+  // Export-mapping types (docutray@0.1.5+)
+  ConversionSpec,
+  ConversionSpecColumn,
+  ConversionSpecSheet,
+  LegacyConversionSpec,
+  MultiSheetConversionSpec,
+  isMultiSheetConversionSpec,
 } from "docutray";
 
 const client = new DocuTray();
@@ -160,6 +167,24 @@ for (const t of types) {
 const docType = await client.types.get("invoice");
 console.log(docType.schema);
 ```
+
+### Read a Document Type's Export Spec
+
+`docutray@0.1.5+` exposes `conversionSpec` — the JSON → CSV/Excel column mapping used by tray export — on `DocumentType`, `DocumentTypeCreateParams`, and `DocumentTypeUpdateParams`. It is a union of two shapes, so narrow it with the exported `isMultiSheetConversionSpec()` guard (which accepts `null` / `undefined` and returns `false`, since list responses omit the field):
+
+```typescript
+import { isMultiSheetConversionSpec } from "docutray";
+
+const docType = await client.types.get("invoice");
+
+if (isMultiSheetConversionSpec(docType.conversionSpec)) {
+  console.log(docType.conversionSpec.sheets.map((sheet) => sheet.name));
+} else if (docType.conversionSpec) {
+  console.log(`${docType.conversionSpec.columns.length} columns`);
+}
+```
+
+On create/update params: omit `conversionSpec` to leave it unchanged, or pass `null` to clear it. See `../advanced/conversion-spec.md`.
 
 ## Environment Variables
 

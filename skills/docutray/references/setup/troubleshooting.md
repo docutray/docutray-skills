@@ -24,6 +24,15 @@ Authentication, connectivity, and environment issues across all integration path
 | Wrong environment | Mixing production keys with `--base-url https://staging.docutray.com` (or vice versa) | Keys are environment-scoped. Use the right key for the active base URL. |
 | Hangs on convert with large file | File approaching size/timeout limits | Use `--async --timeout 600` for synchronous polling, or `--webhook-url`. |
 
+## Document type errors
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Export spec doesn't stick — `types get <code>` shows `Export spec: (none)` right after a successful `types create`/`types update --conversion-spec` | The API deployment predates `conversionSpec` support on document types: the field is accepted and silently discarded, with no error and no way for the CLI to detect it | Confirm with `docutray types get <code>` after every write. If it stays `(none)`, the deployment needs updating — nothing on the client side will change the result. |
+| `--conversion-spec` and `--no-conversion-spec` rejected together | The two flags are mutually exclusive by design | Pass exactly one: `--conversion-spec <file\|json>` to set or replace, `--no-conversion-spec` to clear. |
+| Export spec unchanged after `types update --schema export.json` | Unlike `types create`, `update --schema` deliberately ignores a `conversionSpec` embedded in a `types export` payload — an update only touches the fields you name | Pass the spec explicitly: `docutray types update <code> --conversion-spec export.json`. |
+| `--conversion-spec` fails before any API call | The value is neither an existing file path nor valid JSON, or it parses to an array/scalar/object without `columns` or `sheets` | Check the path, and confirm the JSON is an object shaped `{"columns":[…]}` or `{"sheets":[…]}`. The CLI validates only that shape; everything else is validated by the API. |
+
 ## Common gotchas
 
 - **Key shown only once.** If the key was lost, create a new one in the dashboard. There is no "view existing key" flow.

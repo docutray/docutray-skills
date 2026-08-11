@@ -11,7 +11,7 @@ description: >-
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # DocuTray
@@ -217,7 +217,9 @@ docutray types export factura --force -o factura.json
 
 **`list` response** — `{"data":[…], "pagination":{"total","page","limit"}}`. Each item has `id`, `codeType`, `name`, `description`, `isPublic`, `isDraft`, `status`, `createdAt`, `updatedAt`. The identifier field is **`codeType`** (not `code`); pipe with `jq -r '.data[].codeType'` to extract codes for `--types` on `identify`.
 
-**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), and `keepPropertyOrdering`. Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
+**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), `keepPropertyOrdering`, and `conversionSpec` (the export mapping, verbatim as stored, or `null`). Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
+
+`conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 14 columns`, `5 columns`, or `(none)`. JSON output is never summarized.
 
 `types export` supports `-o, --output` (and `--force` for overwrite). `convert` does not.
 
@@ -258,7 +260,7 @@ When no existing type fits, design a new document type. The high-level flow:
 2. **Decide.** High-confidence existing match → use it. Partial match → ask the user (modify or create new). No match → create new.
 3. **Get and read an example first.** Always ask for an example document and read it with your own file/vision tool (Read/vision — most agents open PDFs and images directly) before generating a schema. Then **propose** the fields you detected and let the user adjust — don't make them enumerate fields blind. No sample? Warn the schema is tentative (validate against a real document later) and fall back to gathering fields by description; don't block.
 4. **Gather the rest progressively.** Don't dump every question at once: name/code → confirm detected fields → additional fields & tabular data → prompt hints → review → execute.
-5. **Create or update.** Use `docutray types create` (full flag set) or `docutray types update <code>`. Both accept `--schema` (file path or inline JSON), `--name`, `--description`, `--prompt-hints`, `--identify-hints`, `--conversion-mode {json|toon|multi_prompt}`, `--keep-ordering`, `--publish`/`--draft`. `create` additionally requires `--code`.
+5. **Create or update.** Use `docutray types create` (full flag set) or `docutray types update <code>`. Both accept `--schema` (file path or inline JSON), `--name`, `--description`, `--prompt-hints`, `--identify-hints`, `--conversion-mode {json|toon|multi_prompt}`, `--conversion-spec`, `--keep-ordering`, `--publish`/`--draft`. `create` additionally requires `--code`; `update` additionally accepts `--no-conversion-spec`.
 6. **Test.** Run `docutray convert <sample> -t <code>` and iterate.
 
 ```bash
@@ -278,9 +280,34 @@ docutray types create \
 - Write descriptions that tell the LLM **where** to look on the page and **what format** to expect.
 - Use `"format": "date"` for dates, `enum` for fixed value sets, `array` with `items` for tabular/repeating data.
 
-> **Depth:** `references/advanced/custom-types-workflow.md` (decision tree, progressive disclosure stages, multi-document files, prompt-hint cookbook) and `references/advanced/schema-design.md` (field-type combinations, nesting, complex examples).
+### Export spec (`conversionSpec`)
 
-**Out of scope for this skill:** validation rules (`dslRules`, `validationRules`), pipeline creation (`steps` design), and advanced `conversionSpec` configuration.
+A type can also carry a **conversion spec** — the mapping from extracted JSON to CSV/Excel columns used by tray export. The schema decides what gets extracted; the spec decides how it lands in a spreadsheet. Two shapes:
+
+```jsonc
+{ "columns": [{ "header": "Total", "jsonPath": "$.total" }] }                    // single table
+{ "sheets":  [{ "name": "Detalle", "columns": [ /* … */ ] }] }                   // multi-sheet
+```
+
+Columns take `header` (required) plus optional `jsonPath`, `type` (`data` | `formula`), and `formula`. Paths select from the type's own `jsonSchema`.
+
+```bash
+# Set at creation — accepts inline JSON, a bare-spec file, or a full `types export` payload
+docutray types create --name "Invoice" --code invoice --description "…" \
+  --schema schema.json --conversion-spec spec.json
+
+docutray types update invoice --conversion-spec spec.json   # replace
+docutray types update invoice --no-conversion-spec          # clear (mutually exclusive with the above)
+docutray types get invoice                                  # → "Export spec: 5 columns"
+```
+
+**The `--schema` asymmetry:** `create --schema <export payload>` carries the embedded `conversionSpec` over, so `types export` → `types create` round-trips the mapping with no extra flags. `update --schema <export payload>` deliberately does **not** — an update only touches the fields you name; use `--conversion-spec` to change it. An explicit `--conversion-spec` wins over an embedded one.
+
+> **Silent drop:** against an API deployment predating `conversionSpec` support the field is accepted and discarded — no error, and the CLI can't detect it. Always confirm with `docutray types get <code>`.
+
+> **Depth:** `references/advanced/custom-types-workflow.md` (decision tree, progressive disclosure stages, multi-document files, prompt-hint cookbook), `references/advanced/schema-design.md` (field-type combinations, nesting, complex examples), and `references/advanced/conversion-spec.md` (export mapping: both shapes, `jsonPath` authoring, full flag semantics, SDK types).
+
+**Out of scope for this skill:** validation rules (`dslRules`, `validationRules`) and pipeline creation (`steps` design).
 
 ## 7. Common Patterns
 
@@ -328,6 +355,8 @@ docutray convert invoice.pdf -t electronic-invoice
 | `403 You do not have permission to use the following document types: …` from `identify` | Some codes returned by `types list` aren't usable by your org | Drop the offending codes from the `--types` list; try a smaller candidate set |
 | Low identify confidence | No matching type among the candidates passed | Widen the `--types` list, or design a custom type (Section 6) |
 | `command types:view not found` / `types:delete not found` | Subcommand doesn't exist | Use `types get` / there is no delete subcommand |
+| Export spec doesn't appear after `types create`/`update --conversion-spec` (`types get` shows `(none)`) | API deployment predates `conversionSpec` support — the field is accepted and silently discarded, and the CLI can't detect it | Verify with `docutray types get <code>` after every write; if it stays `(none)`, the deployment needs updating |
+| `--conversion-spec` and `--no-conversion-spec` rejected together | The two flags are mutually exclusive | Pass one: `--conversion-spec <file\|json>` to set, `--no-conversion-spec` to clear |
 
 > **Depth:** `references/setup/troubleshooting.md` (env var/config conflicts, proxy/TLS, version checks) and `references/setup/rest.md` (full error code table).
 
@@ -335,7 +364,7 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Detail | Value |
 |---|---|
-| CLI package | `@docutray/cli` (verified against 0.3.2) |
+| CLI package | `@docutray/cli` (0.4.0) |
 | API key prefix | `dt_live_` |
 | Production base URL | `https://app.docutray.com` |
 | Staging base URL | `https://staging.docutray.com` |

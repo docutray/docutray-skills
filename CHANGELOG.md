@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [1.2.0] - 2026-08-11
+
+### Added
+
+- **Conversion spec (`conversionSpec`) is now covered end-to-end**, tracking `@docutray/cli@0.4.0` ([docutray-cli#36](https://github.com/docutray/docutray-cli/pull/36), SDK `docutray@0.1.5`). The export mapping — extracted JSON → CSV/Excel columns used by tray export — was previously listed as *out of scope*, so an agent following the skill would silently drop a type's mapping when recreating it and had no way to read or edit one. New `references/advanced/conversion-spec.md` documents both spec shapes (single-table `columns`, multi-sheet `sheets`), the column fields (`header`, `jsonPath`, `type`, `formula`), `jsonPath` authoring against the type's own `jsonSchema`, and full flag semantics. `SKILL.md` §6 gains a compact block with the three flags and one example of each shape.
+- **`types create --conversion-spec` / `types update --conversion-spec` / `types update --no-conversion-spec`** documented, including the three accepted input forms (inline JSON, bare-spec file, full `types export` payload) and the mutual exclusion of the two update flags. Added to the flag tables in `references/advanced/custom-types-workflow.md`.
+- **The `--schema` carry-over asymmetry** is documented at every point of use: `create --schema <export payload>` carries the embedded `conversionSpec` (completing the `types export` → `types create` round-trip with no extra flags), while `update --schema` deliberately does not, because an update only touches the fields you name. An explicit `--conversion-spec` wins over an embedded one.
+- **Silent-drop warning and troubleshooting rows.** Against an API deployment predating `conversionSpec` support the field is accepted and discarded with no error and no client-side way to detect it — `docutray types get <code>` after every write is the only confirmation. Rows added to both troubleshooting tables, alongside entries for the mutually exclusive flags, the ignored-on-update schema spec, and pre-API parse failures.
+- **SDK/REST coverage**: `docutray@0.1.5` exports `ConversionSpec`, `ConversionSpecColumn`, `ConversionSpecSheet`, `LegacyConversionSpec`, `MultiSheetConversionSpec`, and the `isMultiSheetConversionSpec()` guard (accepts `null`/`undefined`, returns `false`) — documented in `references/setup/node.md`, with field notes in `python.md` and `rest.md`.
+
+### Changed
+
+- **`types get` / `types export` response documentation now includes `conversionSpec`** — returned verbatim or `null`, and **absent from `types list` items**. The human-readable `Export spec` summary line and its three forms (`N sheets, M columns` / `M columns` / `(none)`) are documented in `SKILL.md` §4 and `references/platform/types.md`, along with the note that `--json` output is never summarized.
+- **Documented CLI floor raised to `@docutray/cli/0.4.0`** in the `SKILL.md` Technical Reference and on the files this change touches (`references/platform/types.md`, `references/advanced/custom-types-workflow.md` — the latter was stale at `0.2.1`). Files not re-verified by this change keep their existing markers rather than claiming a verification that did not happen.
+- The "pin org types in version control" pattern now names `conversionSpec` among what an export captures, so its recreate claim stays accurate.
+- `references/advanced/schema-design.md` closes with a pointer that the schema being designed is what a conversion spec's `jsonPath` selects from.
+
+> **Provenance:** unlike the `0.3.2` sweep, this release is documented from the merged upstream PR (its `--help` output, README, and OpenSpec requirements) and the SDK's TypeScript definitions — not from a CLI run against a live organization. The new reference file states this and points readers at `--help` and a post-write `types get`.
+
 ## [1.1.0] - 2026-06-09
 
 ### Changed

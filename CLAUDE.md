@@ -12,7 +12,7 @@ Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) �
   - `SKILL.md` — root skill file (YAML frontmatter + Markdown), CLI as canonical example, ≤ 500 lines.
   - `references/setup/{cli,python,node,rest,troubleshooting}.md` — install/auth depth per integration path.
   - `references/platform/{convert,identify,types,steps}.md` — depth for the four core operations.
-  - `references/advanced/{custom-types-workflow,schema-design}.md` — custom document types and JSON Schema design.
+  - `references/advanced/{custom-types-workflow,schema-design,conversion-spec}.md` — custom document types, JSON Schema design, and the export mapping (`conversionSpec`).
 - `openspec/` — Change management via [OpenSpec](https://github.com/openspec-dev/openspec): `config.yaml`, `specs/`, `changes/`.
 
 ## Key Conventions

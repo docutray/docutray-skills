@@ -87,6 +87,8 @@ GET /api/document-types/{codeType}
 
 In `@docutray/cli/0.3.2+`, `docutray types get` and `docutray types export` return the full type definition — including `jsonSchema`, `promptHints`, `identifyPromptHints`, `conversionMode`, and `keepPropertyOrdering` — as a flat object (no `data` envelope). Use the CLI for parity. The exact REST per-type endpoint shape is not re-verified here; treat the CLI as authoritative.
 
+`conversionSpec` (the JSON → CSV/Excel export mapping) is carried on `GET`, `POST`, and `PUT` of `/api/document-types` — sent in the request body on create and update, returned on the single-type endpoints, and **absent from the list endpoint**. It requires an API deployment that supports the field; an older deployment accepts and silently discards it. See `../advanced/conversion-spec.md`.
+
 ### Convert Document
 
 ```

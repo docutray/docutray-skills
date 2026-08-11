@@ -149,6 +149,8 @@ doc_type = client.types.get("invoice")
 print(doc_type.schema)
 ```
 
+A document type also carries `conversionSpec` — the JSON → CSV/Excel column mapping used by tray export — which can be set on create and update. Verify the property casing (`conversion_spec` vs `conversionSpec`) against your installed SDK version before relying on it; see `../advanced/conversion-spec.md` for the spec format.
+
 ## Environment Variables
 
 | Variable | Description |
