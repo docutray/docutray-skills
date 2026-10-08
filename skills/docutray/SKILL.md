@@ -11,7 +11,7 @@ description: >-
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # DocuTray

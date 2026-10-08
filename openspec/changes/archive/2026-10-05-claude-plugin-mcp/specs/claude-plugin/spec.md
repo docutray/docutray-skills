@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Repository is a valid plugin bundle
-The repository root SHALL contain `.claude-plugin/plugin.json` with `name` `docutray`, a semantic `version`, a `description`, an `author`, `homepage`, `repository` and `license`. `claude plugin validate .` SHALL pass without errors.
+The repository root SHALL contain `.claude-plugin/plugin.json` with `name` `docutray`, a semantic `version` equal to the latest release in `CHANGELOG.md` and to the skill's `metadata.version`, a `description`, an `author`, `homepage`, `repository` and `license`. `claude plugin validate .` SHALL pass without errors.
 
 #### Scenario: Validation
 - **WHEN** a maintainer runs `claude plugin validate .` at the repository root
@@ -13,7 +13,7 @@ The plugin SHALL ship `.mcp.json` declaring one server named `docutray` of type 
 #### Scenario: Install registers the server
 - **GIVEN** a user installs the plugin in Claude Code
 - **WHEN** they run `claude mcp list`
-- **THEN** the `docutray` server SHALL appear with URL `https://app.docutray.com/api/mcp`
+- **THEN** the server SHALL appear as `plugin:docutray:docutray` with URL `https://app.docutray.com/api/mcp`
 
 ### Requirement: Plugin ships the docutray skill
 The plugin SHALL expose the existing `skills/docutray` skill without duplicating it, so `npx skills add docutray/docutray-skills` and the plugin install deliver the same skill.

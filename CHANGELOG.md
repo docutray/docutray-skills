@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-08
+
 ### Added
 
-- **Claude Code / OpenAI plugin bundle.** `.claude-plugin/plugin.json` turns the repository root into a plugin that ships the `docutray` skill, and `.mcp.json` wires the DocuTray remote MCP server (`https://app.docutray.com/api/mcp`, OAuth, no API key). `.claude-plugin/marketplace.json` enables `claude plugin marketplace add docutray/docutray-skills`. New OpenSpec capability `claude-plugin`.
+- **Claude Code / OpenAI plugin bundle.** `.claude-plugin/plugin.json` turns the repository root into a plugin that ships the `docutray` skill, and `.mcp.json` wires the DocuTray remote MCP server (`https://app.docutray.com/api/mcp`, OAuth, no API key). `.claude-plugin/marketplace.json` enables `claude plugin marketplace add docutray/docutray-skills`. New OpenSpec capability `claude-plugin`. The plugin's `version` follows the release: it matches this changelog and the skill's `metadata.version`.
 
 ## [1.2.0] - 2026-08-11
 

@@ -4,15 +4,11 @@ Agent skills for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-power
 
 ## Install
 
-```bash
-npx skills add docutray/docutray-skills
-```
+Pick **one** of the two options. Both install the same `docutray` skill, so using both loads it twice.
 
-This installs skills for AI coding agents like Claude Code, Cursor, Windsurf, Codex, and [40+ others](https://agentskills.io).
+### Claude Code: plugin (skill + MCP server)
 
-### Claude Code plugin
-
-The repository is also a Claude Code plugin that bundles the `docutray` skill with the [DocuTray remote MCP server](https://docs.docutray.com/docs/mcp) (`https://app.docutray.com/api/mcp`):
+The repository is a Claude Code plugin that bundles the `docutray` skill with the [DocuTray remote MCP server](https://docs.docutray.com/docs/mcp) (`https://app.docutray.com/api/mcp`):
 
 ```bash
 claude plugin marketplace add docutray/docutray-skills
@@ -20,6 +16,16 @@ claude plugin install docutray@docutray
 ```
 
 Then run `/mcp`, select `plugin:docutray:docutray` and sign in with your DocuTray account. No API key is needed: the server uses OAuth and you pick the organization on the consent screen.
+
+If you previously ran `npx skills add docutray/docutray-skills` in Claude Code, remove that copy of the skill.
+
+### Other agents: skill only
+
+```bash
+npx skills add docutray/docutray-skills
+```
+
+This installs the skill for AI coding agents like Cursor, Windsurf, Codex, and [40+ others](https://agentskills.io). It does not include the MCP server.
 
 ## What's included
 
