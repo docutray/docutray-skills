@@ -2,7 +2,7 @@
 
 All notable changes to the `docutray` agent skill in this repository.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from `1.1.0` onward the skill is versioned with [Semantic Versioning](https://semver.org/). The skill version is also declared in `skills/docutray/SKILL.md` frontmatter (`metadata.version`). The `2026-05-07` consolidation release is the `1.0.0` baseline.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and from `1.1.0` onward the skill is versioned with [Semantic Versioning](https://semver.org/). The same version is declared in `skills/docutray/SKILL.md` frontmatter (`metadata.version`) and, from `1.3.0`, in `.claude-plugin/plugin.json` (`version`); a release bumps the three together (`scripts/check-versions.sh` checks it). The `2026-05-07` consolidation release is the `1.0.0` baseline.
 
 ## [Unreleased]
 
@@ -10,7 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Claude Code / OpenAI plugin bundle.** `.claude-plugin/plugin.json` turns the repository root into a plugin that ships the `docutray` skill, and `.mcp.json` wires the DocuTray remote MCP server (`https://app.docutray.com/api/mcp`, OAuth, no API key). `.claude-plugin/marketplace.json` enables `claude plugin marketplace add docutray/docutray-skills`. New OpenSpec capability `claude-plugin`. The plugin's `version` follows the release: it matches this changelog and the skill's `metadata.version`.
+- **Claude Code / OpenAI plugin bundle.** `.claude-plugin/plugin.json` turns the repository root into a plugin that ships the `docutray` skill and declares, inline, the DocuTray remote MCP server (`https://app.docutray.com/api/mcp`, OAuth, no API key). `.claude-plugin/marketplace.json` enables `claude plugin marketplace add docutray/docutray-skills`. New OpenSpec capability `claude-plugin`. The plugin's `version` follows the release: it matches this changelog and the skill's `metadata.version`.
+
+### Changed
+
+- **The skill routes to the DocuTray MCP tools first** when they are available (e.g. with the plugin installed), and keeps the CLI, SDKs and REST API as the path for agents without MCP and for operations the tools do not cover.
 
 ## [1.2.0] - 2026-08-11
 

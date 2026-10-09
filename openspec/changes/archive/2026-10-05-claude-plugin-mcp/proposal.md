@@ -5,7 +5,7 @@ DocuTray now runs a remote MCP server (`https://app.docutray.com/api/mcp`). The 
 ## What Changes
 
 - Add `.claude-plugin/plugin.json` so the repository root is a Claude Code plugin; the existing `skills/docutray` is discovered automatically.
-- Add `.mcp.json` pointing to the remote server over HTTP with OAuth (no API key).
+- Declare the remote server over HTTP with OAuth (no API key) inline in `plugin.json`.
 - Add `.claude-plugin/marketplace.json` so users can install with `claude plugin marketplace add docutray/docutray-skills`.
 - Document the plugin install in the README and the CHANGELOG.
 
@@ -19,6 +19,6 @@ DocuTray now runs a remote MCP server (`https://app.docutray.com/api/mcp`). The 
 
 ## Impact
 
-- New files: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.mcp.json`.
+- New files: `.claude-plugin/plugin.json` (with the MCP server inline under `mcpServers`) and `.claude-plugin/marketplace.json`. No root `.mcp.json`, which would also act as project configuration for this repository.
 - README and CHANGELOG.
-- No change to `skills/`.
+- `skills/docutray/SKILL.md`: `metadata.version` aligned with the release (1.3.0), and routing to the DocuTray MCP tools when they are available, with the CLI/API as the alternative.

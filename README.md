@@ -17,7 +17,7 @@ claude plugin install docutray@docutray
 
 Then run `/mcp`, select `plugin:docutray:docutray` and sign in with your DocuTray account. No API key is needed: the server uses OAuth and you pick the organization on the consent screen.
 
-If you previously ran `npx skills add docutray/docutray-skills` in Claude Code, remove that copy of the skill.
+If you previously ran `npx skills add docutray/docutray-skills` in Claude Code, remove that copy of the skill. Likewise, if you added the server by hand (`claude mcp add ... docutray`), remove it with `claude mcp remove docutray` before installing the plugin, or the same server will be registered twice.
 
 ### Other agents: skill only
 

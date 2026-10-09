@@ -13,6 +13,11 @@ context: |
 
   Skills are SKILL.md files with YAML frontmatter + Markdown instructions.
   Published via GitHub and installed with: npx skills add docutray/docutray-skills
+  The repository is also distributed as a Claude Code plugin
+  (.claude-plugin/plugin.json + marketplace.json) that bundles the skill with
+  the DocuTray remote MCP server. A release bumps the version in
+  .claude-plugin/plugin.json, SKILL.md metadata.version and CHANGELOG.md
+  together (scripts/check-versions.sh).
 
   Tech stack: Markdown, YAML frontmatter, shell scripts
   Conventions: Follow Agent Skills spec, keep SKILL.md < 500 lines,

@@ -10,5 +10,18 @@
   "homepage": "https://docs.docutray.com/docs/mcp",
   "repository": "https://github.com/docutray/docutray-skills",
   "license": "MIT",
-  "keywords": ["docutray", "ocr", "document-processing", "data-extraction", "invoices", "mcp"]
+  "keywords": [
+    "docutray",
+    "ocr",
+    "document-processing",
+    "data-extraction",
+    "invoices",
+    "mcp"
+  ],
+  "mcpServers": {
+    "docutray": {
+      "type": "http",
+      "url": "https://app.docutray.com/api/mcp"
+    }
+  }
 }

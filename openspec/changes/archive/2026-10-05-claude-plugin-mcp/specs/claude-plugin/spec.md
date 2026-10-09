@@ -8,7 +8,7 @@ The repository root SHALL contain `.claude-plugin/plugin.json` with `name` `docu
 - **THEN** the command SHALL exit with status 0
 
 ### Requirement: Plugin wires the remote MCP server
-The plugin SHALL ship `.mcp.json` declaring one server named `docutray` of type `http` with URL `https://app.docutray.com/api/mcp`, and SHALL NOT embed API keys or other credentials; authentication happens through the server's OAuth flow.
+The plugin SHALL declare, inline under `mcpServers` in `.claude-plugin/plugin.json`, one server named `docutray` of type `http` with URL `https://app.docutray.com/api/mcp`, and SHALL NOT embed API keys or other credentials; authentication happens through the server's OAuth flow. The repository SHALL NOT have a root `.mcp.json`, which Claude Code would also load as project configuration for contributors of this repository.
 
 #### Scenario: Install registers the server
 - **GIVEN** a user installs the plugin in Claude Code

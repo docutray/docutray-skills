@@ -1,7 +1,9 @@
 ---
 name: docutray
 description: >-
-  Use docutray-cli (or the Python/Node SDKs / REST API) to convert documents to
+  When the DocuTray MCP tools are available (e.g. installed with the DocuTray
+  plugin), use them first; otherwise use docutray-cli (or the Python/Node SDKs
+  / REST API) to convert documents to
   structured data, identify document types, manage extraction schemas (types),
   run processing steps, and create custom document types. Covers install,
   authentication (recommended for agents: `docutray login --oauth`, which
@@ -25,6 +27,12 @@ Use it for any task that touches DocuTray: setting up auth, converting documents
 The CLI is the canonical interface in this skill. Python, Node, and REST equivalents live in `references/`.
 
 ## 1. Setup
+
+### 1.0 Prefer the DocuTray MCP tools when they are available
+
+If your tool list includes the DocuTray MCP server (installed by the DocuTray plugin, shown as `plugin:docutray:docutray`) — tools such as `convert_document`, `identify_document`, `list_document_types` and `get_conversion_status` — use those tools first. They authenticate with OAuth: no API key, no CLI install. Use the rest of this skill to choose document types, design schemas and read results, mapping each CLI command to the equivalent tool.
+
+Use the CLI, an SDK or the REST API (sections below) only when the MCP tools are not available, or for operations they do not cover (creating or editing document types, running steps, exporting types).
 
 ### 1.1 Detect the integration path
 

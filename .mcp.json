@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "docutray": {
-      "type": "http",
-      "url": "https://app.docutray.com/api/mcp"
-    }
-  }
-}
