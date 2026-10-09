@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-plugin=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' .claude-plugin/plugin.json)
+plugin=$(jq -r '.version // empty' .claude-plugin/plugin.json)
 skill=$(sed -n 's/^  version: "\(.*\)"$/\1/p' skills/docutray/SKILL.md)
 changelog=$(sed -n 's/^## \[\([0-9][^]]*\)\].*/\1/p' CHANGELOG.md | head -n 1)
 

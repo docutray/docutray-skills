@@ -30,7 +30,16 @@ The CLI is the canonical interface in this skill. Python, Node, and REST equival
 
 ### 1.0 Prefer the DocuTray MCP tools when they are available
 
-If your tool list includes the DocuTray MCP server (installed by the DocuTray plugin, shown as `plugin:docutray:docutray`) — tools such as `convert_document`, `identify_document`, `list_document_types` and `get_conversion_status` — use those tools first. They authenticate with OAuth: no API key, no CLI install. Use the rest of this skill to choose document types, design schemas and read results, mapping each CLI command to the equivalent tool.
+If your tool list includes any DocuTray MCP server (the DocuTray plugin, the claude.ai connector, or one added with `claude mcp add`) — tools such as `convert_document`, `identify_document`, `list_document_types` and `get_conversion_status` — use those tools first. They authenticate with OAuth: no API key, no CLI install. Use the rest of this skill to choose document types, design schemas and read results, mapping each CLI command to the equivalent tool:
+
+| CLI (or SDK) | MCP tool |
+|---|---|
+| `docutray convert <file> -t <type>` | `convert_document` (file URL or base64; waits briefly) |
+| `docutray convert … --async` polling | `get_conversion_status` with the `conversion_id` |
+| `docutray identify <file> --types a,b` | `identify_document`, then `get_identification_status` |
+| `docutray types list [--search …]` | `list_document_types` |
+| `docutray types get <code>` | `get_document_type` |
+| SDK `documentTypes.validate(id, data)` (no CLI command) | `validate_document_data` |
 
 Use the CLI, an SDK or the REST API (sections below) only when the MCP tools are not available, or for operations they do not cover (creating or editing document types, running steps, exporting types).
 
