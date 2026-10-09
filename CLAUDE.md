@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-powered document processing. Skills teach AI coding agents (Claude Code, Cursor, Codex, etc.) how to use `docutray-cli` commands. Published via `npx skills add docutray/docutray-skills` following the [Agent Skills specification](https://agentskills.io).
+Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) — AI-powered document processing. Skills teach AI coding agents (Claude Code, Cursor, Codex, etc.) how to use `docutray-cli` commands. Published via `npx skills add docutray/docutray-skills` following the [Agent Skills specification](https://agentskills.io). Also distributed as a Claude Code plugin (`claude plugin marketplace add docutray/docutray-skills`) that bundles the skill with the DocuTray remote MCP server.
 
 ## Repository Structure
 
@@ -13,6 +13,8 @@ Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) �
   - `references/setup/{cli,python,node,rest,troubleshooting}.md` — install/auth depth per integration path.
   - `references/platform/{convert,identify,types,steps}.md` — depth for the four core operations.
   - `references/advanced/{custom-types-workflow,schema-design,conversion-spec}.md` — custom document types, JSON Schema design, and the export mapping (`conversionSpec`).
+- `.claude-plugin/` — Claude Code plugin: `plugin.json` (metadata, `version`, and the remote MCP server inline under `mcpServers`) and `marketplace.json`. There is no root `.mcp.json`: it would also configure this repository for its contributors.
+- `scripts/check-versions.sh` — checks that `plugin.json`, the skill's `metadata.version` and the latest `CHANGELOG.md` release match (run by `.github/workflows/check-versions.yml`).
 - `openspec/` — Change management via [OpenSpec](https://github.com/openspec-dev/openspec): `config.yaml`, `specs/`, `changes/`.
 
 ## Key Conventions
@@ -21,4 +23,5 @@ Agent skills repository for [DocuTray CLI](https://docs.docutray.com/docs/cli) �
 - Keep each `SKILL.md` under 500 lines; use `references/` subdirectory for detailed documentation
 - Use progressive disclosure pattern (essentials first, details in references)
 - All content is Markdown + YAML — no build system, no tests, no compiled code
+- A release bumps the version in `.claude-plugin/plugin.json`, `skills/docutray/SKILL.md` (`metadata.version`) and `CHANGELOG.md` together; `scripts/check-versions.sh` fails if they differ. Merging to `main` publishes the plugin.
 - Changes are managed through OpenSpec workflow (use `/opsx:new`, `/opsx:continue`, etc.)

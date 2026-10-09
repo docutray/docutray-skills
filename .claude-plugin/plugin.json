@@ -1,0 +1,27 @@
+{
+  "name": "docutray",
+  "version": "1.3.0",
+  "description": "Extract structured data from invoices, statements and other business documents with DocuTray. Bundles the DocuTray remote MCP server and the docutray skill.",
+  "author": {
+    "name": "DocuTray",
+    "email": "support@docutray.com",
+    "url": "https://docutray.com"
+  },
+  "homepage": "https://docs.docutray.com/docs/mcp",
+  "repository": "https://github.com/docutray/docutray-skills",
+  "license": "MIT",
+  "keywords": [
+    "docutray",
+    "ocr",
+    "document-processing",
+    "data-extraction",
+    "invoices",
+    "mcp"
+  ],
+  "mcpServers": {
+    "docutray": {
+      "type": "http",
+      "url": "https://app.docutray.com/api/mcp"
+    }
+  }
+}

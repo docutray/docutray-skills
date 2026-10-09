@@ -1,0 +1,17 @@
+{
+  "name": "docutray",
+  "owner": {
+    "name": "DocuTray",
+    "email": "support@docutray.com"
+  },
+  "metadata": {
+    "description": "DocuTray plugins for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "docutray",
+      "source": "./",
+      "description": "DocuTray remote MCP server plus the docutray skill for document data extraction."
+    }
+  ]
+}
