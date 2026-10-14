@@ -37,7 +37,7 @@ FLAGS
                       (--oauth only)
 ```
 
-#### Observed behavior (verified end-to-end against `@docutray/cli/0.3.2`)
+#### Observed behavior (`@docutray/cli/0.5.0`; first verified end-to-end on 0.3.2)
 
 ```bash
 $ docutray login --oauth
@@ -45,12 +45,11 @@ $ docutray login --oauth
 
 - **stderr** (progress, in order):
   ```
-  Open this URL to authorize: https://app.docutray.com/api/auth/oauth2/authorize?client_id=docutray-cli&response_type=code&redirect_uri=http://localhost:9876/callback&...
+  Open this URL to authorize: https://app.docutray.com/api/auth/oauth2/authorize?client_id=docutray-cli&response_type=code&redirect_uri=http://localhost:9876/callback&...&scope=openid%20docutray:cli&prompt=consent&...
   Opening browser for authentication...
   Waiting for authentication (timeout: 180s)...
   Exchanging authorization code...
   Fetching organizations...
-  Multiple organizations found, using: <org-name>
   Creating API key...
   ```
 - **stdout** (success JSON, after the user authorizes):
@@ -70,7 +69,10 @@ Notes for agents:
 - The auth URL prefix `Open this URL to authorize:` is a stable marker — grep stderr for it if the agent needs to surface the URL to the user (e.g. when the browser auto-open fails).
 - `apiKey` in the success JSON is **masked** as `<first-4>****<last-4>`. The unmasked key is only on disk in `~/.config/docutray/config.json`.
 - The CLI binds the OAuth callback on `http://localhost:9876/callback` — keep that port free and not blocked by the local firewall.
-- When the authenticated user belongs to multiple DocuTray orgs, the CLI auto-selects the first one (visible in the `Multiple organizations found, using: …` stderr line). To pick a specific org, log into the dashboard with that org, create an API key there, and use `docutray login --api-key <key>` instead.
+- **The organization is chosen in the browser.** The DocuTray consent screen lists the user's organizations, with the active one preselected, on every login (CLI ≥ 0.5.0). The server binds the token to the chosen organization and the API key is created for it; `organizationName` in the success JSON confirms which one. To switch organizations later, run `docutray login --oauth` again and pick another one. Older CLIs (≤ 0.4.1) skip the selector and pick an organization on their own (`Multiple organizations found, using: …`): upgrade with `npm i -g @docutray/cli@latest`.
+- `Organization was not chosen in the browser; using: <org-name>` on stderr means the server did not bind the token to an organization (an older deployment), so the CLI fell back to the first organization it listed. Check `organizationName` in the output.
+- `OAuth error (invalid_scope): The following scopes are invalid: docutray:cli` means the deployment predates the organization selector (typically a custom `--base-url`). Use `docutray login --api-key <key>` against it; the error output includes that hint.
+- Errors redirected from the browser keep the OAuth code (`OAuth error (access_denied): …` when the user clicks *Deny*), so agents can match on it.
 
 #### Useful flags
 
