@@ -13,7 +13,7 @@ description: >-
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # DocuTray
@@ -359,7 +359,7 @@ docutray convert invoice.pdf -t electronic-invoice
 |---|---|---|
 | `Non-interactive mode requires --api-key flag or api-key argument` | Bare `docutray login` invoked without a TTY (agent / CI) | Use `docutray login --oauth` (preferred), `docutray login --api-key dt_live_...`, the positional form, or set `DOCUTRAY_API_KEY` |
 | OAuth login hangs / never returns | User hasn't authorized in browser yet, or callback can't reach `localhost:9876` | Wait up to 180s (default `--timeout`); pass `--timeout <seconds>` to shorten; verify port 9876 is free; use `--no-browser` and surface the URL to the user manually |
-| OAuth picked the wrong organization | User has multiple DocuTray orgs; CLI auto-selects the first (`Multiple organizations found, using: …` on stderr) | Log into the dashboard with the desired org, create an API key there, and use `docutray login --api-key <key>` instead |
+| OAuth logged into the wrong organization | The user has several DocuTray orgs and chose another one on the consent screen, or the CLI is older than 0.5.0 (it picked one on its own) | Re-run `docutray login --oauth` and pick the organization on the consent screen; upgrade first with `npm i -g @docutray/cli@latest` if `docutray --version` is below 0.5.0. Headless fallback: create an API key in that org's dashboard and run `docutray login --api-key <key>` |
 | `Error: Nonexistent flag: --output` (or `--format`) on `convert` | Flag does not exist | Use shell redirection `> result.json` |
 | `401 Unauthorized` | Missing or invalid key | Verify with `docutray status`; re-export `DOCUTRAY_API_KEY` |
 | `403 Forbidden` | Key lacks permissions | Issue a new key in the dashboard |

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-14
+
+### Changed
+
+- **OAuth login: the organization is chosen on the consent screen.** Tracks `@docutray/cli@0.5.0` ([docutray-cli#42](https://github.com/docutray/docutray-cli/pull/42), server [docutray#1095](https://github.com/docutray/docutray/pull/1095)): `docutray login --oauth` now shows the DocuTray consent screen with an organization selector on every login, and the API key is created for the organization the user picks. The skill no longer tells agents that the CLI auto-selects the first organization, nor sends users to create a dashboard API key to pick one; that remains only as a headless fallback. The wrong-organization rows in `SKILL.md` §8 and `references/setup/troubleshooting.md` say to re-run the login and pick the organization (upgrading the CLI first if it is older than 0.5.0).
+- `references/setup/cli.md` shows the 0.5.0 `login --oauth` output (the `Multiple organizations found` line is gone) and explains the new stderr markers: `Organization was not chosen in the browser; using: …` and `OAuth error (invalid_scope): …` against a deployment without the `docutray:cli` scope. A troubleshooting row covers the latter.
+
 ## [1.3.0] - 2026-10-09
 
 ### Added
