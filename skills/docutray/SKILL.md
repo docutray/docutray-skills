@@ -5,7 +5,7 @@ description: >-
   plugin), use them first; otherwise use docutray-cli (or the Python/Node SDKs
   / REST API) to convert documents to
   structured data, identify document types, manage extraction schemas (types),
-  run processing steps, and create custom document types. Covers install,
+  run processing steps, write/test/save DSL validation rules, and create custom document types. Covers install,
   authentication (recommended for agents: `docutray login --oauth`, which
   drives an OAuth browser flow without exposing the API key to the
   conversation; alternatives: DOCUTRAY_API_KEY env var, --api-key flag,
@@ -13,7 +13,7 @@ description: >-
   task involves docutray, document conversion, document-type identification,
   or extraction schemas.
 metadata:
-  version: "1.3.1"
+  version: "1.4.0"
 ---
 
 # DocuTray
@@ -22,7 +22,7 @@ DocuTray is an AI-powered document processing platform. The CLI (`@docutray/cli`
 
 ## When to use this skill
 
-Use it for any task that touches DocuTray: setting up auth, converting documents, identifying document types, listing or inspecting types, running processing steps, or designing custom document types and schemas.
+Use it for any task that touches DocuTray: setting up auth, converting documents, identifying document types, listing or inspecting types, running processing steps, writing/testing/saving DSL validation rules, or designing custom document types and schemas.
 
 The CLI is the canonical interface in this skill. Python, Node, and REST equivalents live in `references/`.
 
@@ -35,13 +35,15 @@ If your tool list includes any DocuTray MCP server (the DocuTray plugin, the cla
 | CLI (or SDK) | MCP tool |
 |---|---|
 | `docutray convert <file> -t <type>` | `convert_document` (file URL or base64; waits briefly) |
-| `docutray convert … --async` polling | `get_conversion_status` with the `conversion_id` |
+| `docutray convert status <id>` / `convert … --async` polling | `get_conversion_status` with the `conversion_id` |
 | `docutray identify <file> --types a,b` | `identify_document`, then `get_identification_status` |
 | `docutray types list [--search …]` | `list_document_types` |
 | `docutray types get <code>` | `get_document_type` |
-| SDK `documentTypes.validate(id, data)` (no CLI command) | `validate_document_data` |
+| `docutray types rules get <code>` | `get_document_type` (`dslRules`) |
+| `docutray types rules test <code> --data data.json --rules rules.dsl` | `validate_document_data` (`document_type`, `data`, optional `dslRules` override) |
+| `docutray types rules set <code> rules.dsl` / `--clear` | `update_document_type_validation_rules` (exactly one of `documentTypeId` / `codeType`, plus `dslRules`; `null` clears) |
 
-Use the CLI, an SDK or the REST API (sections below) only when the MCP tools are not available, or for operations they do not cover (creating or editing document types, running steps, exporting types).
+Use the CLI, an SDK or the REST API (sections below) only when the MCP tools are not available, or for operations they do not cover (creating or editing schemas, running steps, exporting types). Rule writes through MCP require `docutray:document_types:write`; test proposed rules with `validate_document_data` before saving.
 
 ### 1.1 Detect the integration path
 
@@ -163,6 +165,15 @@ docutray convert invoice.pdf -t electronic-invoice \
 }
 ```
 
+**Validation is informational:** `convert` and `convert status` return extracted data even when validation fails. `validation` is an outcome `{valid, errors: [], warnings: []}`, `null` when the type has neither schema nor rules, or `{"status":"error"}` when checks could not complete or no record exists. The last case does not mean invalid data. Older deployments may omit the field. Inspect it explicitly; conversion success is not a validity gate.
+
+```bash
+# Recover a result after an async timeout; this queries once, without polling
+docutray convert status conv_abc123 --json
+```
+
+Requires `@docutray/cli >= 0.6.0` for `convert status` and validation display.
+
 > **Depth:** `references/platform/convert.md` — async patterns, SDK/REST equivalents, batch processing, error recovery.
 
 ## 3. Identify
@@ -230,11 +241,11 @@ docutray types export factura -o factura.json # to file
 docutray types export factura --force -o factura.json
 ```
 
-**Subcommands**: `list`, `get`, `export`, `create`, `update`. (No `view` or `delete` subcommand exists — use `get` for inspection; type lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.)
+**Subcommands**: `list`, `get`, `export`, `create`, `update`, `rules get/set/test`. (No `view` or `delete` subcommand exists — use `get` for inspection; type lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.)
 
 **`list` response** — `{"data":[…], "pagination":{"total","page","limit"}}`. Each item has `id`, `codeType`, `name`, `description`, `isPublic`, `isDraft`, `status`, `createdAt`, `updatedAt`. The identifier field is **`codeType`** (not `code`); pipe with `jq -r '.data[].codeType'` to extract codes for `--types` on `identify`.
 
-**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), `keepPropertyOrdering`, and `conversionSpec` (the export mapping, verbatim as stored, or `null`). Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
+**`get` / `export` response** — flat JSON object (no `data` envelope). Returns the full type definition: the metadata fields above, plus `jsonSchema` (the actual extraction schema), `promptHints`, `identifyPromptHints`, `conversionMode` (`json` | `toon` | `multi_prompt`), `keepPropertyOrdering`, `conversionSpec` (the export mapping, verbatim as stored, or `null`), and `dslRules` (business-rule text or `null`). Extract the schema with `jq .jsonSchema`. (Schema exposure landed in `@docutray/cli/0.3.2`; in `0.3.1` only metadata was returned.)
 
 `conversionSpec` is **absent from `list` items** — only the single-type endpoints return it. In human (non-`--json`) output, `types get` summarizes it on an **`Export spec`** line rather than dumping it: `2 sheets, 13 columns`, `13 columns`, `0 columns` (stored but empty), `(none)` (no spec), or `(present)` when the shape isn't summarizable. JSON output is never summarized. (Reading the field in JSON works on 0.3.x too — 0.4.0 adds the summary line and the write flags.)
 
@@ -324,7 +335,30 @@ docutray types get invoice                                  # → "Export spec: 
 
 > **Depth:** `references/advanced/custom-types-workflow.md` (decision tree, progressive disclosure stages, multi-document files, prompt-hint cookbook), `references/advanced/schema-design.md` (field-type combinations, nesting, complex examples), and `references/advanced/conversion-spec.md` (export mapping: both shapes, `jsonPath` authoring, full flag semantics, SDK types).
 
-**Out of scope for this skill:** validation rules (`dslRules`, `validationRules`) and pipeline creation (`steps` design).
+### Validation rules (`dslRules`)
+
+Read the actual `jsonSchema` and existing `dslRules` first. Write rules for the user’s business constraints using those field names, then **dry-run before saving**, checking representative valid and invalid data. JSON Schema checks structure; DSL checks business logic. Most operators skip missing/null subjects: use `required` when presence matters.
+
+```bash
+docutray types rules get acme_invoice --raw > rules.dsl
+# Edit rules.dsl, then validate only the extracted data object (not the convert envelope)
+docutray types rules test acme_invoice --data extracted.json --rules rules.dsl
+# After reviewing the test results, replace the saved rules and read back
+docutray types rules set acme_invoice rules.dsl
+docutray types rules get acme_invoice
+# Test saved rules by omitting --rules
+docutray types rules test acme_invoice --data extracted.json
+# Remove all rules only when requested
+docutray types rules set acme_invoice --clear
+```
+
+Requires CLI **0.6.0+**. `set` takes a positional file, inline DSL or `-` for stdin, **not** `--file` or `--rules`; `--clear` cannot accompany a rules argument. `test` requires `--data` (JSON file, inline JSON or `-`) and accepts `--rules` (file, inline DSL or `-`); only one input can use stdin. `test` exit codes: **0 valid, 1 invalid, 2 error** (including invalid DSL, input or API failures). Empty rule input is rejected: omit `--rules` to test stored rules; use `set --clear` to remove them. Only organization-owned types can be changed; public platform types cannot.
+
+With MCP, use `get_document_type`, then `validate_document_data` with the proposed `dslRules` override, then `update_document_type_validation_rules`, and read back. A dry-run never saves rules. Compilation errors include line/column diagnostics; fix them before retrying.
+
+> Read [Validation rules](references/advanced/validation-rules.md) for DSL syntax, examples, MCP parameters, SDK/REST equivalents, and result interpretation.
+
+**Out of scope for this skill:** pipeline creation (`steps` design).
 
 ## 7. Common Patterns
 
@@ -382,7 +416,7 @@ docutray convert invoice.pdf -t electronic-invoice
 
 | Detail | Value |
 |---|---|
-| CLI package | `@docutray/cli` (0.4.0) |
+| CLI package | `@docutray/cli` (0.6.0+ for rules and conversion validation) |
 | API key prefix | `dt_live_` |
 | Production base URL | `https://app.docutray.com` |
 | Staging base URL | `https://staging.docutray.com` |
@@ -392,7 +426,7 @@ docutray convert invoice.pdf -t electronic-invoice
 | Source argument | Local file path **or** public URL (`convert`, `identify`, `steps run`) |
 | Supported formats | JPEG, PNG, GIF, BMP, WebP, PDF |
 | Max file size | 100 MB |
-| Convert response | `{ "data": { ...schema-driven keys... } }` |
+| Convert response | `{ "data": { ...schema-driven keys... }, "validation": outcome \| null \| {"status":"error"} }` |
 | Pipeline statuses | `ENQUEUED` → `PROCESSING` → `SUCCESS` \| `ERROR` |
 | Python min version | 3.10+ |
 | Node min version | 20+ |

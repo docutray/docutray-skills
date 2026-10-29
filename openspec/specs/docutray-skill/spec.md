@@ -1,7 +1,7 @@
 # docutray-skill Specification
 
 ## Purpose
-TBD - created by archiving change consolidate-into-single-skill. Update Purpose after archive.
+Define the unified DocuTray skill and its references so agents can operate the CLI, MCP tools and SDKs using accurate commands, schemas and validation workflows.
 
 ## Requirements
 
@@ -71,7 +71,7 @@ The root SKILL.md SHALL link to the matching `references/` file from each top-le
 - **THEN** each SHALL contain at least one cross-reference to its corresponding file under `references/`
 
 ### Requirement: Documented commands match the live CLI
-Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.4.0` or later.
+Every `docutray` command, subcommand, flag, and argument shown in `skills/docutray/SKILL.md` and any file under `skills/docutray/references/` SHALL match the help output of `docutray <command> --help` for `@docutray/cli/0.6.0` or later.
 
 #### Scenario: Convert flags are real
 - **WHEN** the convert section in `SKILL.md` or `references/platform/convert.md` is read
@@ -91,7 +91,7 @@ Every `docutray` command, subcommand, flag, and argument shown in `skills/docutr
 
 #### Scenario: Types subcommands are real
 - **WHEN** the types section is read
-- **THEN** the documented subcommands SHALL be a subset of `{list, get, export, create, update}`; `view` and `delete` SHALL NOT appear
+- **THEN** the documented subcommands SHALL be a subset of `{list, get, export, create, update, rules get, rules set, rules test}`; `view` and `delete` SHALL NOT appear
 
 #### Scenario: Types create and update flags are real
 - **WHEN** the `types create` and `types update` flag tables are read
@@ -111,7 +111,7 @@ Every `docutray` command, subcommand, flag, and argument shown in `skills/docutr
 
 #### Scenario: Documented CLI floor is consistent
 - **WHEN** the Technical Reference table in `SKILL.md` and the "verified against" lines in `references/` files that document `types` behavior are read
-- **THEN** they SHALL name `@docutray/cli/0.4.0` and SHALL NOT claim verification against a version older than the behavior they describe
+- **THEN** they SHALL name `@docutray/cli/0.6.0` and SHALL NOT claim verification against a version older than the behavior they describe
 
 ### Requirement: Convert response shape is schema-driven
 Documentation of the `docutray convert` response SHALL describe the body as `{ "data": { ...keys defined by the active document-type schema... } }` and SHALL NOT include a fabricated `"success"` boolean wrapper or a `"document_type"` / `"fields"` envelope around the extracted data.
@@ -318,3 +318,25 @@ Wherever the skill documents `docutray login --oauth` for users with several org
 #### Scenario: Observed login output matches 0.5.0
 - **WHEN** `references/setup/cli.md` shows the stderr of `docutray login --oauth`
 - **THEN** it SHALL NOT include the removed `Multiple organizations found, using: …` line, and SHALL explain the `Organization was not chosen in the browser; using: …` line and the `OAuth error (invalid_scope)` failure against a deployment without the `docutray:cli` scope
+
+### Requirement: DSL validation workflow
+The skill SHALL teach DSL authoring against the actual schema, dry-run testing before saving through CLI or MCP, read-back verification, ownership restrictions, and CLI test exit codes. Detailed SDK and REST equivalents SHALL live in a linked reference.
+
+#### Scenario: Proposed rules
+- **WHEN** an agent changes rules
+- **THEN** it reads existing rules, tests proposed text on valid and invalid samples without saving, reviews issues, saves the intended text and reads back
+
+#### Scenario: CLI syntax
+- **WHEN** rules commands are documented
+- **THEN** set uses positional input or --clear, test uses --data and optional --rules, and exits are 0 valid, 1 invalid, 2 error
+
+### Requirement: Informational conversion validation
+The skill SHALL distinguish conversion success from data validity and describe convert status plus validation outcomes, skipped validation and system failure.
+
+#### Scenario: Unknown validity
+- **WHEN** validation is null, absent or status:error
+- **THEN** the agent does not infer data validity, and recognizes null as skipped and status:error as incomplete checks or missing records
+
+#### Scenario: Invalid data
+- **WHEN** conversion succeeds with validation.valid false
+- **THEN** the skill explains that conversion remains successful and recommends an explicit validity gate when needed
