@@ -1,6 +1,6 @@
 # CLI setup — detailed reference
 
-Verified against `@docutray/cli/0.2.1`. When in doubt, run `docutray <command> --help`.
+Rules commands, conversion status and validation display require `@docutray/cli >= 0.6.0` (checked against source and help). When in doubt, run `docutray <command> --help`.
 
 ## Installation
 

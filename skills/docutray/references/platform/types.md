@@ -1,8 +1,8 @@
 # Types — detailed reference
 
-Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
+Manage document types (extraction schemas) — the templates DocuTray uses when converting documents. This file covers read-only operations (`list`, `get`, `export`); rule operations are in [Validation rules](../advanced/validation-rules.md); for `create` / `update`, see `references/advanced/custom-types-workflow.md`.
 
-Verified against `@docutray/cli/0.3.2` and a real org listing; `conversionSpec` coverage documented from `@docutray/cli/0.4.0`. Run `docutray types <subcommand> --help` to confirm.
+Baseline listing verified on CLI 0.3.2; current rules and type fields checked against `@docutray/cli/0.6.0` source. Run `docutray types <subcommand> --help` to confirm.
 SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
 
 ## Subcommands
@@ -14,6 +14,7 @@ SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** an
 | `export` | Export a type definition (currently same shape as `get`) |
 | `create` | Create a new type — see `custom-types-workflow.md` |
 | `update` | Update an existing type — see `custom-types-workflow.md` |
+| `rules get/set/test` | Read, replace/clear, or dry-run DSL rules — see [Validation rules](../advanced/validation-rules.md) |
 
 There is **no** `view` subcommand (use `get`) and **no** `delete` subcommand. Lifecycle is managed via `--draft` / `--publish` on `update`, or via the dashboard.
 
@@ -37,6 +38,7 @@ Common type fields (returned by all three commands):
 
 | Field | Type | Notes |
 |---|---|---|
+| `dslRules` | string \| null | Business rules; see [Validation rules](../advanced/validation-rules.md) for authoring and dry-run before save |
 | `jsonSchema` | object | The JSON Schema used for extraction (object with `type`, `required`, `properties`) |
 | `promptHints` | string | Free-form hints applied during conversion |
 | `identifyPromptHints` | string | Free-form hints applied during identification |
@@ -339,4 +341,18 @@ for CODE in $(docutray types list --limit 50 --json | jq -r '.data[].codeType');
 done
 ```
 
-Each file contains the full type definition (metadata + `jsonSchema` + hints + conversion mode + `conversionSpec`), so the snapshot is sufficient to recreate the type via `docutray types create --schema <file>` — which carries the embedded export mapping over as well as the schema.
+Each file contains the type definition, including `dslRules` when present. **`types create --schema <file>` carries over only `jsonSchema` and the embedded `conversionSpec`; it does not restore DSL rules or the other metadata/hints.** Supply the desired metadata/hints through their explicit creation flags. Capture the new stored `codeType` from the create response, then restore rules separately after a dry-run:
+
+```bash
+jq -r '.dslRules // empty' schemas/acme_invoice.json > restored-rules.dsl
+# If the source has non-empty rules, test them against representative data first
+docutray types rules test neworg_invoice --data extracted.json --rules restored-rules.dsl
+docutray types rules set neworg_invoice restored-rules.dsl
+docutray types rules get neworg_invoice --raw
+```
+
+If the snapshot has no rules, do not pass an empty file to `set`. If restoring over an existing type, clear old rules only when that removal is intended. See [Validation rules](../advanced/validation-rules.md).
+
+## Rules and SDK versions
+
+CLI 0.6.0 adds `types rules get/set/test`; SDK rules support requires Node 0.2.0 or Python 0.3.0. Both expose `dslRules` on `DocumentType`, support it on create/update, and accept a temporary override on validate. See [Validation rules](../advanced/validation-rules.md) for executable examples and ID resolution.

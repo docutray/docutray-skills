@@ -1,7 +1,7 @@
 # Convert — detailed reference
 
-Verified against `@docutray/cli/0.2.1`. Run `docutray convert --help` to confirm.
-SDK snippets are verified against the installed `docutray` Node SDK **0.1.5** and Python SDK **0.2.1** — the packages were installed and every documented call path probed.
+CLI commands checked against `@docutray/cli/0.6.0` source and help. Run `docutray convert --help` to confirm.
+Baseline SDK snippets were probed on Node **0.1.5** / Python **0.2.1**; validation support below is checked against Node **0.2.0** / Python **0.3.0** source.
 
 ## CLI usage
 
@@ -66,6 +66,31 @@ Top-level `data` whose keys come from the active document type's schema. There i
 ```
 
 DocuTray's default org schemas often use Spanish key names (`moneda`, `detalle`, `fecha_pago`, …). The exact keys depend on the schema you defined or the public type you used.
+
+## Conversion status and validation (CLI 0.6.0+)
+
+```bash
+docutray convert status conv_abc123 --json
+docutray convert status conv_abc123 --json | jq .validation
+```
+
+`convert status CONVERSION-ID [--json]` queries once. Use the ID reported on an async timeout to recover later; `convert --async` already polls until completion or timeout. JSON output preserves `validation` verbatim; TTY output shows a readable validation block after the result.
+
+A completed conversion carries a top-level `validation` alongside `data`:
+
+| Value | Meaning |
+|---|---|
+| `{"valid":true,"errors":[],"warnings":[]}` | Validation ran; no errors |
+| `{"valid":false,"errors":[…],"warnings":[]}` | Validation ran; data has errors |
+| `null` | Skipped: no JSON Schema and no DSL rules |
+| `{"status":"error"}` | Checks could not complete, or no validation record exists; validity is unknown |
+| Field absent | Older API deployment, or a status response before completion; do not infer validity |
+
+Validation is **informational**. Invalid data still returns with conversion status `SUCCESS`; neither `convert` nor `convert status` exits nonzero solely because data is invalid. Use `types rules test` for a script validity gate (0 valid / 1 invalid / 2 error). Do not treat `null` or `status:error` as a valid outcome. To check again, validate `data` against the type using CLI/MCP/SDK.
+
+Conversion `errors` and `warnings` are arrays of structured issues; on-demand validation instead returns `valid`, `issues`, and error/warning count-and-message summaries. See [Validation rules](../advanced/validation-rules.md).
+
+Node 0.2.0 and Python 0.3.0 expose `result.validation` and status validation; the same detailed union is present in `CONVERSION_COMPLETED` webhooks. Steps use summaries instead of these arrays. In Node, narrow with `isValidationOutcome` / `isValidationSystemFailure`; in Python, distinguish `ValidationOutcome`, `ValidationSystemFailure`, and `None` before reading `.valid`.
 
 ## Python SDK
 

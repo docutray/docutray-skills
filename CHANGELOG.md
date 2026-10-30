@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-29
+
+### Added
+
+- DSL authoring and dry-run-before-save workflow with CLI 0.6.0, MCP, Node 0.2.0 and Python 0.3.0, including clearing rules, compilation diagnostics and test exit codes.
+- Conversion status recovery and informational validation outcomes (`valid`, `null`, `status:error`), distinguishing conversion success from data validity.
+- Dedicated validation-rules reference with syntax, samples, SDK/REST equivalents and ownership/scope constraints. Tracks [#19](https://github.com/docutray/docutray-skills/issues/19) and [docutray#1111](https://github.com/docutray/docutray/issues/1111).
+
 ## [1.3.1] - 2026-10-14
 
 ### Changed

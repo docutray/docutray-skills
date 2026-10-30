@@ -383,3 +383,7 @@ docutray convert sample-po.pdf -t purchase-order
 ```
 
 Then iterate on the schema if any field is missing or wrong.
+
+## Add business validation after extraction works
+
+Read [Validation rules](validation-rules.md) to write DSL against the actual schema. Test proposed rules with representative extracted data using a dry-run before saving; then convert a real sample and inspect its informational `validation`. CLI 0.6.0 uses `types rules set` for rules; there is no `--dsl-rules` flag on `types create/update`.
